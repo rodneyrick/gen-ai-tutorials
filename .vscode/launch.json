@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "name": "start",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/app",
+            "module": "poetry",
+            "args": [
+                "run", "start"
+            ]
+        }
+    ]
+}

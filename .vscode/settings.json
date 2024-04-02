@@ -1,0 +1,17 @@
+{
+    "files.exclude": {
+            "**/__pycache__": true,
+            "**/.pytest_cache": true,
+            "**/*.pyc": true,
+            //"**/*.pyc": { "when": "$(basename).py"}        
+    },
+    "editor.rulers": [
+        100
+    ],
+    "jupyter.interactiveWindow.textEditor.executeSelection": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.pycodestyleEnabled": true,
+    "python.languageServer": "Default"
+}
