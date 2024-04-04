@@ -24,6 +24,11 @@ gitpython = "^3.1.43"
 pysqlite3 = "^0.5.2"
 pysqlite3-binary = "^0.5.2.post3"
 qdrant-client = {extras = ["fastembed"], version = "^1.8.2"}
+certifi = "^2024.2.2"
+charset-normalizer = "^3.3.2"
+idna = "^3.6"
+requests = "^2.31.0"
+urllib3 = "^2.2.1"
 
 
 [tool.poetry.group.dev.dependencies]
