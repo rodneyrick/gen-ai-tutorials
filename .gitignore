@@ -162,3 +162,8 @@ cython_debug/
 # Ignore
 !.vscode/**/*
 !app/lib/**/*
+
+.env
+tmp
+sonar-project.properties
+.scannerwork
