@@ -22,6 +22,11 @@ from app.sonar_evaluations import SonarEvaluations
 from langchain.prompts import PromptTemplate
 from langchain_community.llms.ollama import Ollama
 import os
+import logging
+
+LOG_FORMAT_DEFAULT = "%(asctime)s %(levelname)s [%(name)s] [%(filename)s:%(lineno)d] - %(message)s"
+logging.basicConfig(level=logging.DEBUG,format=LOG_FORMAT_DEFAULT)
+logging.getLogger('urllib3.connectionpool').setLevel(logging.INFO)
 
 org_or_user="lucasBritoo"
 repository_name="rede-neural-deteccao-fraude"
@@ -68,7 +73,6 @@ evaluation_git = ic.make_evaluation(repository_name=repository_name)
 sonar = SonarEvaluations(sonar_token=sonar_token,project_name=repository_name,
                          github_url=f"https://github.com/{org_or_user}/{repository_name}")     
 evaluation_sonar = sonar.make_evaluation()
-
 
 llm = Ollama(model=ollama_model, base_url=ollama_url)
 chain = create_prompt() | llm

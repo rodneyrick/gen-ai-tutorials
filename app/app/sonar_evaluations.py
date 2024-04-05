@@ -1,16 +1,22 @@
 import os
 import requests
 import time
+from app.utils import exec_command
+import logging
 
 class SonarEvaluations:
+    
     def __init__(self, sonar_token, project_name, github_url) -> None:
         self.sonar_token = sonar_token
         self.project_key = project_name
         self.project_name = project_name
         self.github_url = github_url
         self.sonar_url = "http://sonarqube:9000"
-        self.path = "./tmp"
-        self.sonar_scanner_path = "/workspaces/gen-ai-tutorials/app/tools/sonarqube/sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner"
+        self.repos_path = "/workspaces/gen-ai-tutorials/app/tmp"
+        self.sonar_scanner_path = "/workspaces/gen-ai-tutorials/app/tools/sonarqube/sonar-scanner-5.0.1.3006-linux"
+        self.sonar_scanner_donwload = "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip?_gl=1*8egwxx*_gcl_au*MTA0NjMwMjU1OS4xNzEyMTY4MTE0*_ga*MjE0NjI4OTI4NC4xNzEyMTY4MTE0*_ga_9JZ0GZ5TC6*MTcxMjMyNjM0MS40LjAuMTcxMjMyNjM0MS42MC4wLjA."
+        self.sonar_dir = "/workspaces/gen-ai-tutorials/app/tools/sonarqube"
+        self.sonar_scanner_version = "sonar-scanner-5.0.1.3006-linux"
 
     def make_evaluation(self):
         """
@@ -22,9 +28,9 @@ class SonarEvaluations:
         """
         evaluation = {}
         self.create_sonar_project()
-        self.dowload_github_files(github_url=self.github_url, repository_path=self.path)
-        self.create_sonar_project_properties(base_dir=f"{self.path}/{self.project_name}")
-        self.make_sonarqube_analysis(base_dir=f"{self.path}/{self.project_name}")
+        self.dowload_github_files(github_url=self.github_url, repository_path=f'{self.repos_path}/{self.project_name}')
+        self.create_sonar_project_properties(base_dir=f"{self.repos_path}/{self.project_name}")
+        self.make_sonarqube_analysis(base_dir=f"{self.repos_path}/{self.project_name}")
         
         analysis_ready = False
 
@@ -89,11 +95,13 @@ class SonarEvaluations:
         Returns:
             None
         """
-        if os.path.exists(repository_path):
-            os.system(f"rm -Rf {repository_path}")
-            
-        os.mkdir(repository_path)
-        os.system(f"cd {repository_path} && git clone {github_url}")
+        if not os.path.exists(self.repos_path):
+            os.mkdir(self.repos_path)
+        
+        if not os.path.exists(repository_path):
+            exec_command(comando=['git', 'clone', github_url], log_path='clone_repo_git.log', cwd=self.repos_path)
+        
+        logging.debug('O clone do repositorio git foi executado com sucesso')
 
     def make_sonarqube_analysis(self, base_dir):
         """
@@ -102,7 +110,13 @@ class SonarEvaluations:
         Returns:
             None
         """
-        os.system(f"cd {base_dir} && {self.sonar_scanner_path}")
+        if not os.path.exists(self.sonar_scanner_path):
+            logging.info('Não foi encontrada uma instalação do sonar-scanner. Iniciando processo de download')
+            exec_command(comando=['curl', self.sonar_scanner_donwload, '--output', f'{self.sonar_dir}/{self.sonar_scanner_version}.zip'], log_path="download_sonar_scanner.log")
+            exec_command(comando=['unzip', '-o', f'{self.sonar_dir}/{self.sonar_scanner_version}.zip', '-d', self.sonar_dir], log_path="unzip_sonar_scanner.log")
+            os.remove(f'{self.sonar_dir}/{self.sonar_scanner_version}.zip')
+        exec_command(comando=[f'{self.sonar_scanner_path}/bin/sonar-scanner'], log_path='exec_sonar_scanner.log', cwd=base_dir)
+        logging.debug("Análise do repositorio foi executada e econtra-se disponível no sonarqube")
     
     def create_sonar_project_properties(self,base_dir):
         """
