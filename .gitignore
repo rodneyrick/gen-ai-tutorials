@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-# lib/
+lib/
 lib64/
 parts/
 sdist/
@@ -164,6 +164,8 @@ cython_debug/
 !app/lib/**/*
 
 .env
-tmp
+tmp/
+logs/
 sonar-project.properties
 .scannerwork
+sonar-scanner-5.0.1.3006-linux/
