@@ -1,0 +1,30 @@
+{
+    "Domain": "Maintainability",
+    "Context": "The Maintainability domain in source code metrics focuses on the software's maintainability, identifying and addressing practices that may hinder understanding and modification of the code in the future. It includes measures such as the total number of code smells (indicative of design or implementation issues) in both existing and new code. Additionally, maintainability classification assesses the code quality concerning technical debt, considering factors such as the amount of effort required to fix identified issues. The technical debt index and the proportion of technical debt relative to development cost provide insight into the overall code quality and associated maintenance costs. These metrics are crucial to ensure that the code is sustainable in the long term and can be easily maintained and extended as needed",
+    "Metrics": [
+        {
+            "key": "code_smells",
+            "description": "The total count of code smell issues"
+        },
+        {
+            "key": "development_cost",
+            "description": "Development cost"
+        },
+        {
+            "key": "effort_to_reach_maintainability_rating_a",
+            "description": "Effort to reach maintainability rating A"
+        },
+        {
+            "key": "sqale_rating",
+            "description": "The rating given to your project related to the value of your Technical debt ratio. The default Maintainability rating grid is:. A=0-0.05, B=0.06-0.1, C=0.11-0.20, D=0.21-0.5, E=0.51-1. The Maintainability rating scale can be alternately stated by saying that if the outstanding remediation cost is:. <=5% of the time that has already gone into the application, the rating is A. between 6 to 10% the rating is a B. between 11 to 20% the rating is a C. between 21 to 50% the rating is a D. anything over 50% is an E"
+        },
+        {
+            "key": "sqale_index",
+            "description": "A measure of effort to fix all code smells. The measure is stored in minutes in the database. An 8-hour day is assumed when values are shown in days"
+        },
+        {
+            "key": "sqale_debt_ratio",
+            "description": "The ratio between the cost to develop the software and the cost to fix it. The Technical Debt Ratio formula is: Remediation cost / Development cost. Which can be restated as: Remediation cost / (Cost to develop 1 line of code * Number of lines of code). The value of the cost to develop a line of code is 0.06 days"
+        }
+    ]
+}
