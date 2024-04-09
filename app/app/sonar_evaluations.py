@@ -3,6 +3,7 @@ import requests
 import time
 from app.utils import exec_command
 import logging
+import json
 
 class SonarEvaluations:
     
@@ -18,7 +19,7 @@ class SonarEvaluations:
         self.sonar_dir = "/workspaces/gen-ai-tutorials/app/tools/sonarqube"
         self.sonar_scanner_version = "sonar-scanner-5.0.1.3006-linux"
 
-    def make_evaluation(self):
+    def make_evaluation(self, metric_name):
         """
         Realiza uma avaliação do projeto no SonarQube e retorna diversas métricas de qualidade de código.
 
@@ -26,50 +27,32 @@ class SonarEvaluations:
             dict: Um dicionário contendo métricas como número total de issues, quantidade de issues por severidade,
                   porcentagem de duplicação de código, quantidade de hotspots de segurança, entre outras.
         """
-        evaluation = {}
+        
         self.create_sonar_project()
         self.dowload_github_files(github_url=self.github_url, repository_path=f'{self.repos_path}/{self.project_name}')
         self.create_sonar_project_properties(base_dir=f"{self.repos_path}/{self.project_name}")
         self.make_sonarqube_analysis(base_dir=f"{self.repos_path}/{self.project_name}")
         
+        self.verify_analysis_ready()
+        
+        return self.analyze_metrics(metric_name)
+
+    def verify_analysis_ready(self):
+
         analysis_ready = False
 
         while not analysis_ready:
-            analysis = self.make_request(
-                "project_analyses/search", f"project={self.project_key}"
-            )["analyses"]
+            
+            response = requests.get(
+                f"{self.sonar_url}/api/project_analyses/search?project={self.project_key}",
+                headers={"Authorization": f"Bearer {self.sonar_token}"},
+            )
+            json_of_response = response.json()
+            analysis = json_of_response["analyses"]
+            
             if analysis != []:
                 analysis_ready = True
             time.sleep(1)
-
-        evaluation["code_duplication"] = self.get_code_duplication()
-        evaluation["maintainability_issues"] = self.get_quantity_of_maintainability_issues()
-        evaluation["reliability_issues"] = self.get_quantity_of_reliability_issues()
-        evaluation["security_issues"] = self.get_quantity_of_security_issues()
-        evaluation["quantity_of_security_hotspots"] = self.get_quantity_of_security_hotspots()
-        evaluation["quantity_of_bugs"] = self.get_bug_issues()
-        evaluation["quantity_of_vulnerabilities"] = self.get_vulnerabiity_issues()
-        evaluation["quantity_of_code_smells"] = self.get_code_smells_issues()
-
-        return evaluation
-
-    def make_request(self, extra_path, query):
-        """
-        Realiza uma requisição à API do SonarQube, já com a autenticação necessária e organizando parâmetros e queries.
-
-        Args:
-            extra_path (str): Caminho adicional para a requisição.
-            query (str): Parâmetros de consulta para a requisição.
-
-        Returns:
-            dict: Resposta da requisição em formato JSON.
-        """
-        response = requests.get(
-            f"{self.sonar_url}/api/{extra_path}?{query}",
-            headers={"Authorization": f"Bearer {self.sonar_token}"},
-        )
-        json_of_response = response.json()
-        return json_of_response
 
     def create_sonar_project(self):
         """
@@ -136,119 +119,25 @@ class SonarEvaluations:
             file.write(f"sonar.projectKey={self.project_key}\n")
             file.write("sonar.sourceEncoding=UTF-8\n")
             
-    def get_value_of_component_response(self, response):
-        """
-        Obtém o valor de uma resposta de componente.
+    def analyze_metrics(self, metric_name):
+        results = []
+        with open(metric_name, 'r') as arquivo:
+            json_data = json.load(arquivo)
+            for componente in json_data['Metrics']:
+                result = self.request_metrics(componente['key'])
+                results.append(result)
+        return results
+                    
+    def request_metrics(self, metric_key):
+        response = requests.get(
+            f"{self.sonar_url}/api/measures/component?component={self.project_key}&metricKeys={metric_key}",
+            headers={"Authorization": f"Bearer {self.sonar_token}"},
+        )
 
-        Args:
-            response (dict): Resposta da requisição em formato JSON.
-
-        Returns:
-            dict: dicionário com dados retornados pelo json.
-        """
+        return self.get_value_metric(response.json(), metric_key)
+    
+    def get_value_metric(self, response, metric_name):
         response = response["component"]["measures"]
-        return response[0]["value"] if len(response) > 0 else 0
-
-    def get_code_duplication(self):
-        """
-        Obtém a porcentagem de duplicação de código.
-
-        Returns:
-            float: Porcentagem de duplicação de código.
-        """
-        code_duplication = self.make_request(
-            extra_path="measures/component",
-            query=f"component={self.project_key}&metricKeys=duplicated_lines_density",
-        )
-        return self.get_value_of_component_response(code_duplication)
-
-    def get_quantity_of_reliability_issues(self):
-        """
-        Obtém a quantidade de issues de confiabilidade.
-
-        Returns:
-            dict: Quantidade de issues de confiabilidade, separado em chaves que dizem o nível severidade e valor com quantidade.
-        """
-        reliability_issues = self.make_request(
-            extra_path="measures/component",
-            query=f"component={self.project_key}&metricKeys=reliability_issues",
-        )
-        return self.get_value_of_component_response(reliability_issues)
-
-    def get_quantity_of_security_issues(self):
-        """
-        Obtém a quantidade de issues de segurança.
-
-        Returns:
-            int: Quantidade de issues de segurança, separado em chaves que dizem o nível severidade e valor com quantidade..
-        """
-        security_issues = self.make_request(
-            extra_path="measures/component",
-            query=f"component={self.project_key}&metricKeys=security_issues",
-        )
-        return self.get_value_of_component_response(security_issues)
-
-    def get_quantity_of_maintainability_issues(self):
-        """
-        Obtém a quantidade de issues de manutenibilidade.
-
-        Returns:
-            int: Quantidade de issues de manutenibilidade, separado em chaves que dizem o nível severidade e valor com quantidade..
-        """
-        maintainability_issues = self.make_request(
-            extra_path="measures/component",
-            query=f"component={self.project_key}&metricKeys=maintainability_issues",
-        )
-        return self.get_value_of_component_response(maintainability_issues)
-
-    def get_quantity_of_security_hotspots(self):
-        """
-        Obtém a quantidade de hotspots de segurança.
-
-        Returns:
-            int: Quantidade de hotspots de segurança.
-        """
-        security_hotspots = self.make_request(
-            extra_path="measures/component",
-            query=f"component={self.project_key}&metricKeys=security_hotspots",
-        )
-        return self.get_value_of_component_response(security_hotspots)
-
-    def get_bug_issues(self):
-        """
-        Obtém a quantidade de issues de bugs.
-
-        Returns:
-            int: Quantidade de issues de bugs.
-        """
-        bugs = self.make_request(
-            extra_path="measures/component",
-            query=f"component={self.project_key}&metricKeys=bugs",
-        )
-        return self.get_value_of_component_response(bugs)
-
-    def get_code_smells_issues(self):
-        """
-        Obtém a quantidade de issues de smells de código.
-
-        Returns:
-            int: Quantidade de issues de smells de código.
-        """
-        code_smells = self.make_request(
-            extra_path="measures/component",
-            query=f"component={self.project_key}&metricKeys=code_smells",
-        )
-        return self.get_value_of_component_response(code_smells)
-
-    def get_vulnerabiity_issues(self):
-        """
-        Obtém a quantidade de issues de vulnerabilidades.
-
-        Returns:
-            int: Quantidade de issues de vulnerabilidades.
-        """
-        vulnerability_issues = self.make_request(
-            extra_path="measures/component",
-            query=f"component={self.project_key}&metricKeys=vulnerabilities",
-        )
-        return self.get_value_of_component_response(vulnerability_issues)
+        metric_value = response[0]["value"] if len(response) > 0 else 0
+        
+        return f'{metric_name}: {metric_value}'
