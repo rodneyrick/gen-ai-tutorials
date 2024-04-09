@@ -162,3 +162,10 @@ cython_debug/
 # Ignore
 !.vscode/**/*
 !app/lib/**/*
+
+.env
+tmp/
+logs/
+sonar-project.properties
+.scannerwork
+sonar-scanner-5.0.1.3006-linux/

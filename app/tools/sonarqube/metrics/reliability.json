@@ -1,0 +1,18 @@
+{
+    "Domain": "Reliability",
+    "Context": "The Reliability domain in source code metrics addresses the reliability of the software in terms of identifying and resolving bugs. It includes measures such as the total number of bug issues, both in existing code and in new code, and classifies reliability based on the severity of the bugs found. The reliability remediation effort metric indicates the time required to fix all identified bug issues, while the same metric applied only to new code provides a specific insight into the recent code quality. These metrics are essential to ensure the stability and correct functionality of the software, promoting a consistent and reliable user experience",
+    "Metrics": [
+        {
+            "key": "bugs",
+            "description": "The total number of bug issues"
+        },
+        {
+            "key": "reliability_rating",
+            "description": "Reliability rating. A = 0 Bugs. B = at least 1 Minor Bug. C = at least 1 Major Bug. D = at least 1 Critical Bug. E = at least 1 Blocker Bug"
+        },
+        {
+            "key": "reliability_remediation_effort",
+            "description": "The effort to fix all bug issues. The measure is stored in minutes in the DB. An 8-hour day is assumed when values are shown in days"
+        }
+    ]
+}

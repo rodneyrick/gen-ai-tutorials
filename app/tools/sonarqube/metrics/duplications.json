@@ -1,0 +1,27 @@
+{
+    "Domain": "Duplications",
+    "Context": "The Duplications domain in source code metrics addresses the presence of code duplications, identifying duplicated line blocks in different parts of the code. It includes measures such as the number of duplicated line blocks, the number of files involved in these duplications, and the total number of duplicated lines. Additionally, the density of duplicated lines is calculated as the percentage of duplicated lines compared to the total lines of code. Identifying and reducing duplications is important for maintaining clean code, reducing complexity, and facilitating maintenance, thereby avoiding inconsistencies and redundancies. These metrics help developers identify areas of code that can be refactored to improve the quality and efficiency of the software",
+    "Metrics": [
+        {
+            "key": "duplicated_lines_density",
+            "description": "Duplicated lines balanced by statements"
+        },
+        {
+            "key": "duplicated_blocks",
+            "description": "The number of duplicated blocks of lines"
+        },
+        {
+            "key": "duplicated_files",
+            "description": "The number of files involved in duplications"
+        },
+        {
+            "key": "duplicated_lines",
+            "description": "The number of lines involved in duplications"
+        },
+        {
+            "key": "duplicated_lines_density",
+            "description": "Duplicated lines balanced by statements. duplicated_lines / (lines of code) * 100"
+        }
+    ]
+}
+

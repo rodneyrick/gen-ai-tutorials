@@ -1,0 +1,50 @@
+{
+    "Domain": "Issues",
+    "Context": "The Issue domain in source code metrics focuses on identifying and managing issues and violations in the code. It includes measures such as the total number of issues across all stages, as well as the count of new violations and specific severity violations in new code. Violations are classified into five severities: BLOCKER, CRITICAL, MAJOR, MINOR, and INFO, each representing different levels of impact on the software. Issues identified as BLOCKER have a high probability of impacting the application's behavior in production and should be fixed immediately, while those classified as CRITICAL require immediate review due to security issues or low probability of impact on the application. These metrics are essential to ensure the quality and reliability of the source code, facilitating the identification and correction of issues before they affect the performance or security of the software",
+    "Metrics": [
+        {
+            "key": "blocker_violations",
+            "description": "Bug with a high probability to impact the behavior of the application in production. For example, a memory leak, or an unclosed JDBC connection are BLOCKERs that must be fixed immediately"
+        },
+        {
+            "key": "critical_violations",
+            "description": "Either a bug with a low probability to impact the behavior of the application in production or an issue that represents a security flaw. An empty catch block or SQL injection would be a CRITICAL issue. The code must be reviewed immediately"
+        },
+        {
+            "key": "false_positive_issues",
+            "description": "The total count of issues marked false positive"
+        },
+        {
+            "key": "high_impact_accepted_issues",
+            "description": "Accepted issues with high impact"
+        },
+        {
+            "key": "info_violations",
+            "description": "Neither a bug nor a quality flaw, just a finding."
+        },
+        {
+            "key": "violations",
+            "description": "The total count of issues in all states"
+        },
+        {
+            "key": "maintainability_issues",
+            "description": "Maintainability issues"
+        },
+        {
+            "key": "major_violations",
+            "description": "A quality flaw that can highly impact the developer's productivity. An uncovered piece of code, duplicated blocks, or unused parameters are examples of MAJOR issues"
+        },
+        {
+            "key": "minor_violations",
+            "description": "A quality flaw that can slightly impact the developer's productivity. For example, lines should not be too long, and switch statements should have at least 3 cases, are both be considered MINOR issues"
+        },
+        {
+            "key": "reliability_issues",
+            "description": "Reliability issues"
+        },
+        {
+            "key": "security_issues",
+            "description": "Security issues"
+        }
+    ]
+}
