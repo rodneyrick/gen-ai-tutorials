@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# export http_proxy=http://proxyprdusr.cip.lan.com:8080
-
 # Lista de extensões a serem instaladas
 EXTENSIONS=(
     "Gruntfuggly.todo-tree"

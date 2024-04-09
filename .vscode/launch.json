@@ -1,14 +1,11 @@
 {
     "configurations": [
         {
-            "name": "start",
+            "name": "repo_metrics",
             "type": "debugpy",
             "request": "launch",
+            "module": "repo_metrics",
             "cwd": "${workspaceFolder}/app",
-            "module": "poetry",
-            "args": [
-                "run", "start"
-            ]
         }
     ]
 }
