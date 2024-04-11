@@ -1,0 +1,1 @@
+from app.tasks.task_sonarqube import TaskSonarqube

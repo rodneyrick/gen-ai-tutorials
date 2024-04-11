@@ -1,46 +1,41 @@
-from app import configs
-import os
 from langchain.prompts import PromptTemplate
-from app.tasks.sonar_evaluations import SonarEvaluations
+from app.configs import logging
 from openai import OpenAI
 import json
-from typing import List
+import os
 from textwrap import dedent
+from typing import List
 
-configs.load_dotenv()
-logger = configs.logging.getLogger()
+DIR_PATH_METRICS = "/workspaces/gen-ai-tutorials/app/tools/sonarqube/metrics"
 
-class Task_Sonarqube:
+logger = logging.getLogger()
+
+class TaskSonarqube:
     
-    def __init__(self, 
-                 org_or_user: str, 
-                 repository_name: str,
-                 metric_json_items: List[str] = [],
-                 **kwargs,
-        ):
-        self.org_or_user = org_or_user
-        self.repository_name = repository_name
-        self.sonar_token = os.environ['SONAR_TOKEN']
-        self.dir_path_metrics: str = "/workspaces/gen-ai-tutorials/app/tools/sonarqube/metrics"
-        self.sonar: SonarEvaluations = None
-        self.add_metrics(metric_json_items=metric_json_items)
-        # print(os.environ['OPENAI_BASE_URL'])
-        # print(os.environ['OPENAI_API_KEY'])
-
-    def add_metrics(self, metric_json_items: List[str]):
-        logger.info("Adding metrics to evaluate list")
-        self.metrics_json_list = metric_json_items
-        if not self.metrics_json_list:
-            self.metrics_json_list = os.listdir(self.dir_path_metrics)
-        else:
-            self.metrics_json_list = [f"{item}.json" for item in self.metrics_json_list]
-        self.metrics_json_list = iter(self.metrics_json_list)
+    def __init__(self, tools_repos, tools_analysis, tools_scanners, 
+                 project_name: str, url_repo: str, sonar_token: str, sonar_url: str,
+                 metric_name: str):
+        self.tools_repos = tools_repos
+        self.tools_analysis = tools_analysis
+        self.tools_scanners = tools_scanners
+        self.project_name = project_name
+        self.url_repo = url_repo
+        self.sonar_token = sonar_token
+        self.sonar_url = sonar_url
+        self.metrics_name = metric_name
+        # self.add_metrics(metric_json_items=metric_json_items)
         
-    def get_metric_json(self):
-        metric_json_item = next(self.metrics_json_list)
-        logger.info(f"Selecting metric=`{metric_json_item}`")
-        return metric_json_item
-    
+    def _run(self):
+        self.tools_repos.run(tool_input={"project_name": self.project_name, "url": self.url_repo})
+
+        self.tools_scanners.run(tool_input={"project_name": self.project_name, "token": self.sonar_token, 
+                                          "url": self.sonar_url})
+        
+        self.analysis = self.tools_analysis.run(tool_input={"project_name": self.project_name, "token": self.sonar_token,
+                                             "url": self.sonar_url, "metric_name": self.metrics_name})
+            
+        self.create_chat()
+                  
     def prompt_system(self):
         
         template = """
@@ -66,17 +61,13 @@ class Task_Sonarqube:
         
         prompt_template = PromptTemplate.from_template(template)
         return prompt_template
-    
+
     def get_info_from_json_file(self, metric_json) -> dict:
-        path_file_metric_json = f"{self.dir_path_metrics}/{metric_json}"
+        path_file_metric_json = f"{DIR_PATH_METRICS}/{metric_json}.json"
         with open(path_file_metric_json, 'r') as arquivo:
             json_data = json.load(arquivo)
         return json_data
 
-    def get_domain(self, json_data):
-        logger.info("Reading DOMAIN and CONTEXT informations")
-        return json_data['Domain'], json_data['Context']
-    
     def extract_keys_and_descriptions(self, json_data):
         logger.info("Reading METRIC and DESCRIPTION informations")
         metrics = json_data["Metrics"]
@@ -84,44 +75,37 @@ class Task_Sonarqube:
         for metric in metrics:
             result += f"- {metric['key']}: {metric['description']}\n"
         return result
-    
-    def extract_metrics(self, sonar, metric_json):
-        # sonar = SonarEvaluations(
-        #     sonar_token=self.sonar_token,
-        #     project_name=self.repository_name,
-        #     github_url=f"https://github.com/{self.org_or_user}/{self.repository_name}"
-        # )
-        path_metric_json = f"{self.dir_path_metrics}/{metric_json}"
-        evaluation_sonar = sonar.make_evaluation(path_metric_json)
 
-        result = ""
-        for evaluation in evaluation_sonar:
-            result += f"- {evaluation}\n"
-        
-        return result
-    
+    def add_metrics(self, metric_json_items: List[str]):
+        logger.info("Adding metrics to evaluate list")
+        self.metrics_json_list = metric_json_items
+        if not self.metrics_json_list:
+            self.metrics_json_list = os.listdir(DIR_PATH_METRICS)
+        else:
+            self.metrics_json_list = [f"{item}.json" for item in self.metrics_json_list]
+        self.metrics_json_list = iter(self.metrics_json_list)
+
+    def get_metric_json(self):
+        metric_json_item = next(self.metrics_json_list)
+        logger.info(f"Selecting metric=`{metric_json_item}`")
+        return metric_json_item
+
+    def get_domain(self, json_data):
+        logger.info("Reading DOMAIN and CONTEXT informations")
+        return json_data['Domain'], json_data['Context']
+
     def create_chat(self):
 
-        if self.sonar is None:
-            self.sonar = SonarEvaluations(
-                sonar_token=self.sonar_token,
-                project_name=self.repository_name,
-                github_url=f"https://github.com/{self.org_or_user}/{self.repository_name}"
-            )
-
-        metric_json = self.get_metric_json()
-
-        # client = OpenAI()
-        print(os.environ['OPENAI_BASE_URL'])
-        print(os.environ['OPENAI_API_KEY'])
         client = OpenAI(
             base_url=os.environ['OPENAI_BASE_URL'], 
             api_key=os.environ['OPENAI_API_KEY']
         )
-        json_data = self.get_info_from_json_file(metric_json)
+        
+        # metric_json = self.get_metric_json()
+        json_data = self.get_info_from_json_file(self.metrics_name)
         domain_name, domain_description = self.get_domain(json_data)
         metrics_description = self.extract_keys_and_descriptions(json_data)
-        metrics_results = self.extract_metrics(self.sonar, metric_json)
+        metrics_results = self.analysis
         
         logger.info("Iniciando chat")
         logger.info(dedent(f"""
@@ -146,6 +130,5 @@ class Task_Sonarqube:
             temperature=0.3
         )
         logger.info(completion.choices[0].message.content)
-        return completion.choices[0].message.content
-        
+        # return completion.choices[0].message.content
     

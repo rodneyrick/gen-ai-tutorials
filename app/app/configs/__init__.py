@@ -1,4 +1,4 @@
-from .settings import load_dotenv
-from .settings import logging
+from app.configs.settings import load_dotenv
+from app.configs.settings import logging
 
 load_dotenv()

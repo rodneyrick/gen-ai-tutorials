@@ -14,18 +14,21 @@ ollama_model = Nome do modelo usado.
 
 """
 
-from app import configs
-from app.tasks.task_sonarqube import Task_Sonarqube
+from app.tasks.task_sonarqube import TaskSonarqube
+from app.tools import ToolSonarScanner, ToolSonarAnalyzis, ToolGit
+from app.tasks import TaskSonarqube
+from app.configs import load_dotenv, logging
+import os
 
-configs.load_dotenv()
+load_dotenv()
 
-org_or_user="rodneyrick"
-repository_name="MO444-PatternRecognition-and-MachineLearning"
-
-sonar = Task_Sonarqube(
-    org_or_user=org_or_user,
-    repository_name=repository_name,
-    # metric_json_items=["tests"]
-)
-s = sonar.create_chat()
-# s = sonar.create_chat()
+logging.debug("Iniciando Task")
+task = TaskSonarqube(tools_repos=ToolGit(),
+                     tools_analysis=ToolSonarAnalyzis(),
+                     tools_scanners=ToolSonarScanner(),
+                     project_name="fastapi-lib-observability",
+                     url_repo="https://github.com/lucasBritoo/fastapi-lib-observability",
+                     sonar_token=os.environ['SONAR_TOKEN'],
+                     sonar_url="http://sonarqube:9000",
+                     metric_name="complexity")
+task._run()
