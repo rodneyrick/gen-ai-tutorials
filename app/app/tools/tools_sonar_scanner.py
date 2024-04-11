@@ -2,8 +2,8 @@ import os
 import requests
 import time
 from app.utils import exec_command
-import logging
 from typing import Optional, Type
+from app.configs import logging
 from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import BaseTool
 
@@ -17,6 +17,8 @@ SONAR_SCANNER_PATH = "/workspaces/gen-ai-tutorials/app/tools/sonarqube/sonar-sca
 SONAR_SCANNER_DONWLOAD = "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip?_gl=1*8egwxx*_gcl_au*MTA0NjMwMjU1OS4xNzEyMTY4MTE0*_ga*MjE0NjI4OTI4NC4xNzEyMTY4MTE0*_ga_9JZ0GZ5TC6*MTcxMjMyNjM0MS40LjAuMTcxMjMyNjM0MS42MC4wLjA."
 SONAR_DIR = "/workspaces/gen-ai-tutorials/app/tools/sonarqube"
 SONAR_SCANNER_VERSION = "sonar-scanner-5.0.1.3006-linux"
+
+logger = logging.getLogger()
 
 class SonarScannerInput(BaseModel):
     token: str = Field(description="Sonar Token")
@@ -41,7 +43,7 @@ class ToolSonarScanner(BaseTool):
             self.verify_analysis_ready(token=token, project_name=project_name, url=url)
             return True
         except Exception as e:
-            print(e)
+            logger.error(e)
             return False
 
     async def _arun(self, query: str, run_manager: Optional[AsyncCallbackManagerForToolRun] = None) -> str:
@@ -65,13 +67,14 @@ class ToolSonarScanner(BaseTool):
                 analysis_ready = True
             time.sleep(1)
 
-    def create_sonar_project(self, url: str="http://localhost:9000",token: str=None, project_name: str=None):
+    def create_sonar_project(self, url: str,token: str, project_name: str):
         requests.post(
             f"{url}/api/projects/create?project={project_name}&name={project_name}",
             headers={"Authorization": f"Bearer {token}"},
         )
     
     def make_sonarqube_analysis(self, base_dir):
+        logger.debug("Enviando repositório para o SonarQube")
         if not os.path.exists(SONAR_SCANNER_PATH):
             logging.info('Não foi encontrada uma instalação do sonar-scanner. Iniciando processo de download')
             exec_command(comando=['curl', SONAR_SCANNER_DONWLOAD, '--output', f'{SONAR_DIR}/{SONAR_SCANNER_VERSION}.zip'], log_path="download_sonar_scanner.log")
@@ -81,6 +84,7 @@ class ToolSonarScanner(BaseTool):
         logging.debug("Análise do repositorio foi executada e econtra-se disponível no sonarqube")
     
     def create_sonar_project_properties(self,base_dir: str, token: str, project_name: str, url: str):
+        logger.info("Creating sonar-project.properties file")
         with open(f"{base_dir}/sonar-project.properties", "w") as file:
             file.write(f"sonar.sources=.\n")
             file.write(f"sonar.token={token}\n")
