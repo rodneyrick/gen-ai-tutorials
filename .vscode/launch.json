@@ -5,7 +5,7 @@
             "type": "debugpy",
             "request": "launch",
             "module": "repo_metrics",
-            "cwd": "${workspaceFolder}/app",
+            "cwd": "${workspaceFolder}/app/app",
         }
     ]
 }
