@@ -1,17 +1,41 @@
 from langchain.prompts import PromptTemplate
-# from app.tools.tools_sonar_analyzis import ToolSonarqube
+from app.configs import logging
 from openai import OpenAI
 import json
+import os
+from textwrap import dedent
+from typing import List
+
+DIR_PATH_METRICS = "/workspaces/gen-ai-tutorials/app/tools/sonarqube/metrics"
+
+logger = logging.getLogger()
 
 class TaskSonarqube:
     
-    def __init__(self,ollama_url, metric_json, sonar_token, repository_name, org_or_user):
-        self.ollama_url = ollama_url
-        self.metric_json = metric_json
+    def __init__(self, tools_repos, tools_analysis, tools_scanners, 
+                 project_name: str, url_repo: str, sonar_token: str, sonar_url: str,
+                 metric_name: str):
+        self.tools_repos = tools_repos
+        self.tools_analysis = tools_analysis
+        self.tools_scanners = tools_scanners
+        self.project_name = project_name
+        self.url_repo = url_repo
         self.sonar_token = sonar_token
-        self.repository_name = repository_name
-        self.org_or_user = org_or_user
-    
+        self.sonar_url = sonar_url
+        self.metrics_name = metric_name
+        # self.add_metrics(metric_json_items=metric_json_items)
+        
+    def _run(self):
+        self.tools_repos.run(tool_input={"project_name": self.project_name, "url": self.url_repo})
+
+        self.tools_scanners.run(tool_input={"project_name": self.project_name, "token": self.sonar_token, 
+                                          "url": self.sonar_url})
+        
+        self.analysis = self.tools_analysis.run(tool_input={"project_name": self.project_name, "token": self.sonar_token,
+                                             "url": self.sonar_url, "metric_name": self.metrics_name})
+            
+        self.create_chat()
+                  
     def prompt_system(self):
         
         template = """
@@ -37,54 +61,74 @@ class TaskSonarqube:
         
         prompt_template = PromptTemplate.from_template(template)
         return prompt_template
-    
-    def get_domain(self):
-        with open(self.metric_json, 'r') as arquivo:
-            json_data = json.load(arquivo)
-            
-            domain_name = json_data['Domain']
-            domain_description = json_data['Context']
 
-        return domain_name,domain_description
-    
-    def get_keys_and_descriptions(self):
-        with open(self.metric_json, 'r') as arquivo:
+    def get_info_from_json_file(self, metric_json) -> dict:
+        path_file_metric_json = f"{DIR_PATH_METRICS}/{metric_json}.json"
+        with open(path_file_metric_json, 'r') as arquivo:
             json_data = json.load(arquivo)
-            metrics = json_data["Metrics"]
-            result = ""
-            for metric in metrics:
-                result += f"- {metric['key']}: {metric['description']}\n"
-        return result
-    
-    def get_metrics(self, sonar_analysis: bool=False):
-        sonar = ToolSonarqube(sonar_token=self.sonar_token,project_name=self.repository_name,
-                         github_url=f"https://github.com/{self.org_or_user}/{self.repository_name}")
-        evaluation_sonar = sonar.make_evaluation(self.metric_json, sonar_analysis=sonar_analysis)
+        return json_data
 
-        result = ""
-        for evaluation in evaluation_sonar:
-            result += f"- {evaluation}\n"
-        
+    def extract_keys_and_descriptions(self, json_data):
+        logger.info("Reading METRIC and DESCRIPTION informations")
+        metrics = json_data["Metrics"]
+        result = "\n"
+        for metric in metrics:
+            result += f"- {metric['key']}: {metric['description']}\n"
         return result
-    
+
+    def add_metrics(self, metric_json_items: List[str]):
+        logger.info("Adding metrics to evaluate list")
+        self.metrics_json_list = metric_json_items
+        if not self.metrics_json_list:
+            self.metrics_json_list = os.listdir(DIR_PATH_METRICS)
+        else:
+            self.metrics_json_list = [f"{item}.json" for item in self.metrics_json_list]
+        self.metrics_json_list = iter(self.metrics_json_list)
+
+    def get_metric_json(self):
+        metric_json_item = next(self.metrics_json_list)
+        logger.info(f"Selecting metric=`{metric_json_item}`")
+        return metric_json_item
+
+    def get_domain(self, json_data):
+        logger.info("Reading DOMAIN and CONTEXT informations")
+        return json_data['Domain'], json_data['Context']
+
     def create_chat(self):
-        client = OpenAI(base_url=f"{self.ollama_url}", api_key="not-needed")
-        domain_name, domain_description = self.get_domain()
-        metrics_description = self.get_keys_and_descriptions()
-        metrics_results = self.get_metrics(sonar_analysis=True)
+
+        client = OpenAI(
+            base_url=os.environ['OPENAI_BASE_URL'], 
+            api_key=os.environ['OPENAI_API_KEY']
+        )
         
-        print(metrics_results)
-                
+        # metric_json = self.get_metric_json()
+        json_data = self.get_info_from_json_file(self.metrics_name)
+        domain_name, domain_description = self.get_domain(json_data)
+        metrics_description = self.extract_keys_and_descriptions(json_data)
+        metrics_results = self.analysis
+        
+        logger.info("Iniciando chat")
+        logger.info(dedent(f"""
+            Domain: {domain_name}
+            Description: {domain_description}
+            Metrics Description: 
+            {metrics_description}
+            Metrics: 
+            {metrics_results}
+        """))
+
         completion = client.chat.completions.create(
-            model="llama2",
+            model=os.environ['OPENAI_MODEL_NAME'],
             messages=[
-                {"role": "system", "content": self.prompt_system().format(domain_name=domain_name, 
-                                                                        domain_description=domain_description)},
-                {"role": "user", "content": self.prompt_user().format(description=metrics_description, 
-                                                                    metrics=metrics_results)}
+                {"role": "system", 
+                 "content": self.prompt_system().format(domain_name=domain_name, 
+                                                        domain_description=domain_description)},
+                {"role": "user", 
+                 "content": self.prompt_user().format(description=metrics_description, 
+                                                      metrics=metrics_results)}
             ],
             temperature=0.3
         )
-        
-        print(completion.choices[0].message.content)
+        logger.info(completion.choices[0].message.content)
+        # return completion.choices[0].message.content
     
