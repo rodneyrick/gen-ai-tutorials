@@ -15,7 +15,8 @@ ollama_model = Nome do modelo usado.
 """
 
 import dotenv
-from app.task_sonarqube import Task_Sonarqube
+from app.tasks.task_sonarqube import TaskSonarqube
+from app.tools import ToolSonarScanner, ToolSonarAnalyzis, ToolGit
 import os
 import logging
 
@@ -36,10 +37,14 @@ sonar_token=os.environ['SONAR_TOKEN']
 git_token=os.environ['GIT_TOKEN']
 ollama_url=os.environ['OLLAMA_URL']
 ollama_model="mistralai_mistral-7b-instruct-v0.2"
+sonar_url="http://sonarqube:9000"
 
-sonar = Task_Sonarqube(metric_json="/workspaces/gen-ai-tutorials/app/tools/sonarqube/metrics/tests.json",
-                       ollama_url=ollama_url,
-                       org_or_user=org_or_user,
-                       repository_name=repository_name,
-                       sonar_token=sonar_token)
-sonar.create_chat()
+# sonar = TaskSonarqube(metric_json="/workspaces/gen-ai-tutorials/app/tools/sonarqube/metrics/tests.json",
+#                        ollama_url=ollama_url,
+#                        org_or_user=org_or_user,
+#                        repository_name=repository_name,
+#                        sonar_token=sonar_token)
+# sonar.create_chat()
+
+sonar = ToolSonarScanner()
+print(sonar.run(tool_input={"project_name": repository_name, "token": sonar_token, "url": sonar_url}))

@@ -1,9 +1,9 @@
 from langchain.prompts import PromptTemplate
-from app.sonar_evaluations import SonarEvaluations
+# from app.tools.tools_sonar_analyzis import ToolSonarqube
 from openai import OpenAI
 import json
 
-class Task_Sonarqube:
+class TaskSonarqube:
     
     def __init__(self,ollama_url, metric_json, sonar_token, repository_name, org_or_user):
         self.ollama_url = ollama_url
@@ -47,7 +47,7 @@ class Task_Sonarqube:
 
         return domain_name,domain_description
     
-    def extract_keys_and_descriptions(self):
+    def get_keys_and_descriptions(self):
         with open(self.metric_json, 'r') as arquivo:
             json_data = json.load(arquivo)
             metrics = json_data["Metrics"]
@@ -56,10 +56,10 @@ class Task_Sonarqube:
                 result += f"- {metric['key']}: {metric['description']}\n"
         return result
     
-    def extract_metrics(self):
-        sonar = SonarEvaluations(sonar_token=self.sonar_token,project_name=self.repository_name,
+    def get_metrics(self, sonar_analysis: bool=False):
+        sonar = ToolSonarqube(sonar_token=self.sonar_token,project_name=self.repository_name,
                          github_url=f"https://github.com/{self.org_or_user}/{self.repository_name}")
-        evaluation_sonar = sonar.make_evaluation(self.metric_json)
+        evaluation_sonar = sonar.make_evaluation(self.metric_json, sonar_analysis=sonar_analysis)
 
         result = ""
         for evaluation in evaluation_sonar:
@@ -70,8 +70,8 @@ class Task_Sonarqube:
     def create_chat(self):
         client = OpenAI(base_url=f"{self.ollama_url}", api_key="not-needed")
         domain_name, domain_description = self.get_domain()
-        metrics_description = self.extract_keys_and_descriptions()
-        metrics_results = self.extract_metrics()
+        metrics_description = self.get_keys_and_descriptions()
+        metrics_results = self.get_metrics(sonar_analysis=True)
         
         print(metrics_results)
                 
