@@ -26,7 +26,8 @@ class TaskSonarqube:
         # self.add_metrics(metric_json_items=metric_json_items)
         
     def _run(self):
-        self.tools_repos.run(tool_input={"project_name": self.project_name, "url": self.url_repo})
+        self.tools_repos.run(tool_input={"project_name": self.project_name, "url": self.url_repo,
+                                         "function": 'git_clone'})
 
         self.tools_scanners.run(tool_input={"project_name": self.project_name, "token": self.sonar_token, 
                                           "url": self.sonar_url})
