@@ -3,6 +3,8 @@ from app.configs import logging
 from openai import OpenAI
 import json
 import os
+from langfuse.decorators import observe, langfuse_context
+from langfuse.openai import openai
 from textwrap import dedent
 from typing import List
 
@@ -95,12 +97,13 @@ class TaskSonarqube:
         logger.info("Reading DOMAIN and CONTEXT informations")
         return json_data['Domain'], json_data['Context']
 
+    @observe()
     def create_chat(self):
 
-        client = OpenAI(
-            base_url=os.environ['OPENAI_BASE_URL'], 
-            api_key=os.environ['OPENAI_API_KEY']
-        )
+        # client = OpenAI(
+        #     base_url=os.environ['OPENAI_BASE_URL'], 
+        #     api_key=os.environ['OPENAI_API_KEY']
+        # )
         
         # metric_json = self.get_metric_json()
         json_data = self.get_info_from_json_file(self.metrics_name)
@@ -118,7 +121,11 @@ class TaskSonarqube:
             {metrics_results}
         """))
 
-        completion = client.chat.completions.create(
+        langfuse_context.update_current_trace(
+            tags=["task_sonarqube", f"domain: {domain_name}", f"repo: {self.project_name}"]
+        )
+        
+        completion = openai.chat.completions.create(
             model=os.environ['OPENAI_MODEL_NAME'],
             messages=[
                 {"role": "system", 
