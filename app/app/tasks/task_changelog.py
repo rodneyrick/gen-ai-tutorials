@@ -1,6 +1,9 @@
 from langchain.prompts import PromptTemplate
 from app.configs import logging
 from openai import OpenAI
+from langfuse.decorators import observe, langfuse_context
+from langfuse.openai import openai
+from textwrap import dedent
 import os
 
 logger = logging.getLogger()
@@ -41,15 +44,25 @@ class TaskChangelog:
         prompt_template = PromptTemplate.from_template(template)
         return prompt_template
 
+    @observe()
     def create_chat(self):
 
-        client = OpenAI(
-            base_url=os.environ['OPENAI_BASE_URL'], 
-            api_key=os.environ['OPENAI_API_KEY']
+        # client = OpenAI(
+        #     base_url=os.environ['OPENAI_BASE_URL'], 
+        #     api_key=os.environ['OPENAI_API_KEY']
+        # )
+        
+        langfuse_context.update_current_trace(
+            tags=["task_changelog", f"repo: {self.project_name}"]
         )
         
+        logger.info(dedent(f"""
+            Git Commits: 
+            {self.commits}
+        """))
+        
         logger.info("Iniciando chat")
-        completion = client.chat.completions.create(
+        completion = openai.chat.completions.create(
             model=os.environ['OPENAI_MODEL_NAME'],
             messages=[
                 {"role": "system", 
