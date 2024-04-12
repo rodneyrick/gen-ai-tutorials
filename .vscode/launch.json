@@ -6,6 +6,13 @@
             "request": "launch",
             "module": "repo_metrics",
             "cwd": "${workspaceFolder}/app/app",
+        },
+        {
+            "name": "repo_changelog",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "repo_changelog",
+            "cwd": "${workspaceFolder}/app/app",
         }
     ]
 }
