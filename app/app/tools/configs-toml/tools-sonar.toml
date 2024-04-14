@@ -1,0 +1,26 @@
+[tools]
+    Namespace="Tools"
+    Name="Sonar"
+    updated=2024-04-11T22:42:00Z
+
+
+[tools.sonar]
+    SONAR_DIR="/workspaces/gen-ai-tutorials/app/tools/sonarqube"
+
+    [tools.sonar.scanner]
+        SONAR_SCANNER_PATH = "/sonar-scanner-5.0.1.3006-linux"
+        SONAR_SCANNER_DOWNLOAD = "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip?_gl=1*8egwxx*_gcl_au*MTA0NjMwMjU1OS4xNzEyMTY4MTE0*_ga*MjE0NjI4OTI4NC4xNzEyMTY4MTE0*_ga_9JZ0GZ5TC6*MTcxMjMyNjM0MS40LjAuMTcxMjMyNjM0MS42MC4wLjA."
+        SONAR_SCANNER_VERSION = "sonar-scanner-5.0.1.3006-linux"
+
+    [tools.sonar.analysis]
+        PATH_METRICS="/metrics"
+        METRICS = [
+            "complexity", 
+            "duplications", 
+            "issues", 
+            "maintainability", 
+            "reliability", 
+            "security", 
+            "size", 
+            "tests"
+        ]
