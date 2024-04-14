@@ -13,6 +13,13 @@
             "request": "launch",
             "module": "repo_changelog",
             "cwd": "${workspaceFolder}/app/app",
+        },
+        {
+            "name": "config_params",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "config_params",
+            "cwd": "${workspaceFolder}/app/app",
         }
     ]
 }
