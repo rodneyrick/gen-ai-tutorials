@@ -15,7 +15,7 @@ ollama_model = Nome do modelo usado.
 """
 
 from app.tasks.task_sonarqube import TaskSonarqube
-from app.tools import ToolSonarScanner, ToolSonarAnalyzis, ToolGit
+from app.tools import ToolSonarScanner, ToolSonarAnalysis, ToolGit
 from app.tasks import TaskSonarqube
 from app.configs import load_dotenv, logging
 import os
@@ -24,7 +24,7 @@ load_dotenv()
 
 logging.debug("Iniciando Task")
 task = TaskSonarqube(tools_repos=ToolGit(),
-                     tools_analysis=ToolSonarAnalyzis(),
+                     tools_analysis=ToolSonarAnalysis(),
                      tools_scanners=ToolSonarScanner(),
                      project_name="fastapi-lib-observability",
                      url_repo="https://github.com/lucasBritoo/fastapi-lib-observability",
