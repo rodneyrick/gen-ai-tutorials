@@ -1,7 +1,7 @@
 import logging
 import os
-from app.utils import exec_command
-from app.configs import logging
+from app.utils.commands import exec_command
+from app.configs import logging, app_settings
 from typing import Optional, Type, Literal
 from langchain.pydantic_v1 import BaseModel, Field, validator
 from langchain.tools import BaseTool
@@ -12,8 +12,23 @@ from langchain.callbacks.manager import (
     CallbackManagerForToolRun,
 )
 
-REPOS_PATH = "/workspaces/gen-ai-tutorials/app/tmp"
-MAX_COMMITS = "100"
+from app.utils import parser_config_toml_files, paths
+
+tools_settings = (
+    app_settings.properties |
+    parser_config_toml_files.run(
+        config_name='tools', 
+        dir_path=f"{paths.get_cwd(__file__)}/configs-toml"
+    ) |
+    parser_config_toml_files.run(
+        config_name='tools-git', 
+        dir_path=f"{paths.get_cwd(__file__)}/configs-toml"
+    )
+)
+
+REPOS_PATH = tools_settings['default']['REPOS_PATH']
+MAX_COMMITS = tools_settings['tools']['git']['MAX_COMMITS']
+
 logger = logging.getLogger()
 
 Functionalities = Literal["git_clone", "git_commits_range_id"]

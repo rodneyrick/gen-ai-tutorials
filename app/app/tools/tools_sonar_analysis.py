@@ -1,6 +1,6 @@
 import requests
 import json
-from app.configs import logging
+from app.configs import logging, app_settings
 from typing import Optional, Type
 from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import BaseTool
@@ -10,22 +10,36 @@ from langchain.callbacks.manager import (
     CallbackManagerForToolRun,
 )
 
-PATH_METRICS = "/workspaces/gen-ai-tutorials/app/tools/sonarqube/metrics/"
-METRICS = ['complexity', 'duplications', 'issues', 'maintainability', 'reliability', 'security', 'size', 'tests']
+from app.utils import parser_config_toml_files, paths
+
+tools_settings = (
+    app_settings.properties |
+    parser_config_toml_files.run(
+        config_name='tools', 
+        dir_path=f"{paths.get_cwd(__file__)}/configs-toml"
+    ) |
+    parser_config_toml_files.run(
+        config_name='tools-sonar', 
+        dir_path=f"{paths.get_cwd(__file__)}/configs-toml"
+    )
+)
+
+PATH_METRICS = f"{tools_settings['tools']['sonar']['SONAR_DIR']}{tools_settings['tools']['sonar']['analysis']['PATH_METRICS']}"
+METRICS = tools_settings['tools']['sonar']['analysis']['METRICS']
 
 logger = logging.getLogger()
 
-class SonarAnalyzisInput(BaseModel):
+class SonarAnalysisInput(BaseModel):
     token: str = Field(description="Sonar Token")
     project_name: str = Field(description="Name of project or project Key")
     url: str = Field(description="URL to sonarqube")
     metric_name: str = Field(description="Metric Name to generate insights")
     
 
-class ToolSonarAnalyzis(BaseTool):
+class ToolSonarAnalysis(BaseTool):
     name = "sonar_analyzis"
     description = "useful for when you need to colect applications metrics in the sonarqube"
-    args_schema: Type[BaseModel] = SonarAnalyzisInput
+    args_schema: Type[BaseModel] = SonarAnalysisInput
     return_direct: bool = True
 
     def _run(self, metric_name: str, url: str, project_name: str, token: str,  
