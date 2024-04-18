@@ -1,16 +1,32 @@
 from langchain.prompts import PromptTemplate
+from app.agents.create_chat import create_chat
+from langchain_core.callbacks import BaseCallbackHandler
 from app.configs import logging
 import json
 import os
-from langfuse.decorators import observe, langfuse_context
-from langfuse.openai import openai
+# from langfuse.decorators import observe, langfuse_context
+# from langfuse.openai import openai
 from typing import List
 
 from app.prompts import create_prompt_list
 from textwrap import dedent
+from app.configs import logging, app_settings
+from app.utils import parser_config_toml_files, paths
 
+tools_settings = (
+    app_settings.properties |
+    parser_config_toml_files.run(
+        config_name='tools', 
+        dir_path="/workspaces/gen-ai-tutorials/app/app/tools/configs-toml"
+    ) |
+    parser_config_toml_files.run(
+        config_name='tools-sonar', 
+        dir_path="/workspaces/gen-ai-tutorials/app/app/tools/configs-toml"
+    )
+)
 
 DIR_PATH_METRICS = "/workspaces/gen-ai-tutorials/app/tools/sonarqube/metrics"
+METRICS = tools_settings['tools']['sonar']['analysis']['METRICS']
 
 logger = logging.getLogger()
 
@@ -18,7 +34,9 @@ class TaskSonarqube:
     
     def __init__(self, tools_repos, tools_analysis, tools_scanners, 
                  project_name: str, url_repo: str, sonar_token: str, sonar_url: str,
-                 metric_name: str):
+                 metric_name: str = "",
+                 metric_list: List[str] = [],
+                 callbacks: BaseCallbackHandler = None):
         self.tools_repos = tools_repos
         self.tools_analysis = tools_analysis
         self.tools_scanners = tools_scanners
@@ -27,39 +45,48 @@ class TaskSonarqube:
         self.sonar_token = sonar_token
         self.sonar_url = sonar_url
         self.metrics_name = metric_name
-        # self.add_metrics(metric_json_items=metric_json_items)
-        
-    def _run(self):
-        self.tools_repos.run(tool_input={"project_name": self.project_name, "url": self.url_repo,
-                                         "function": 'git_clone'})
+        self.callbacks = callbacks
+        self.add_metrics(metric_json_items=metric_list)
 
-        self.tools_scanners.run(tool_input={"project_name": self.project_name, "token": self.sonar_token, 
-                                          "url": self.sonar_url})
-        
-        self.analysis = self.tools_analysis.run(tool_input={"project_name": self.project_name, "token": self.sonar_token,
-                                             "url": self.sonar_url, "metric_name": self.metrics_name})
-        
-        json_data = self.get_info_from_json_file(self.metrics_name)
-        self.domain_name, self.domain_description = self.get_domain(json_data)
-        metrics_description = self.extract_keys_and_descriptions(json_data)
-        metrics_results = self.analysis
-        
-        logger.info("Iniciando chat")
-        logger.debug(dedent(f"""
-            Domain: {self.domain_name}
-            Description: {self.domain_description}
-            Metrics Description: 
-            {metrics_description}
-            Metrics: 
-            {metrics_results}
-        """))
-        self.add_prompts(
-            self.domain_name, 
-            self.domain_description,
-            metrics_description=metrics_description, 
-            metrics_results=metrics_results
-        )
-        self.create_chat()
+    def _run(self):
+        # self.tools_repos.run(tool_input={"project_name": self.project_name, "url": self.url_repo,
+        #                                  "function": 'git_clone'},
+        #                      callbacks=self.callbacks)
+
+        # self.tools_scanners.run(tool_input={"project_name": self.project_name, "token": self.sonar_token, 
+        #                                   "url": self.sonar_url},
+        #                         callbacks=self.callbacks)
+        try:
+            metric_name = self.get_metric_json()
+            self.analysis = self.tools_analysis.run(tool_input={"project_name": self.project_name, "token": self.sonar_token,
+                                                "url": self.sonar_url, "metric_name": metric_name},
+                                                    callbacks=self.callbacks)
+            
+            json_data = self.get_info_from_json_file(metric_name)
+            self.domain_name, self.domain_description = self.get_domain(json_data)
+            metrics_description = self.extract_keys_and_descriptions(json_data)
+            metrics_results = self.analysis
+            
+            logger.info("Iniciando chat")
+            logger.debug(dedent(f"""
+                Domain: {self.domain_name}
+                Description: {self.domain_description}
+                Metrics Description: 
+                {metrics_description}
+                Metrics: 
+                {metrics_results}
+            """))
+            self.add_prompts(
+                self.domain_name, 
+                self.domain_description,
+                metrics_description=metrics_description, 
+                metrics_results=metrics_results
+            )
+            self._create_chat()
+            
+            self._run()
+        except StopIteration:
+            logger.debug("No metrics")
 
     def add_prompts(self, domain_name, domain_description, metrics_description, metrics_results):
         self.prompts = create_prompt_list([
@@ -112,9 +139,9 @@ class TaskSonarqube:
         logger.info("Adding metrics to evaluate list")
         self.metrics_json_list = metric_json_items
         if not self.metrics_json_list:
-            self.metrics_json_list = os.listdir(DIR_PATH_METRICS)
+            self.metrics_json_list = [f"{item}" for item in METRICS]
         else:
-            self.metrics_json_list = [f"{item}.json" for item in self.metrics_json_list]
+            self.metrics_json_list = [f"{item}" for item in self.metrics_json_list]
         self.metrics_json_list = iter(self.metrics_json_list)
 
     def get_metric_json(self):
@@ -126,25 +153,32 @@ class TaskSonarqube:
         logger.info("Reading DOMAIN and CONTEXT informations")
         return json_data['Domain'], json_data['Context']
 
-    @observe()
-    def create_chat(self):
-
+    # @observe()
+    def _create_chat(self):
+        logger.debug("Create chat")
+        # chat = create_chat(openai_api_key=os.environ['OPENAI_API_KEY'],
+        #                    openai_api_base=os.environ['OPENAI_BASE_URL'],
+        #                    model=os.environ['OPENAI_MODEL_NAME'],
+        #                    temperature=0.3)
+        
+        # chat.invoke(self.prompts)
+        
+        #--------------------------------#
         # client = OpenAI(
         #     base_url=os.environ['OPENAI_BASE_URL'], 
         #     api_key=os.environ['OPENAI_API_KEY']
         # )
 
-        langfuse_context.update_current_trace(
-            tags=["task_sonarqube", f"domain: {self.domain_name}", f"repo: {self.project_name}"]
-        )
+        # langfuse_context.update_current_trace(
+        #     tags=["task_sonarqube", f"domain: {self.domain_name}", f"repo: {self.project_name}"]
+        # )
         
-        completion = openai.chat.completions.create(
-            model=os.environ['OPENAI_MODEL_NAME'],
-            messages=self.prompts,
-            temperature=0.3,
-            user_id=os.environ['LANGFUSE_USER_ID'],
-            tags=["task-sonarqube"]
-        )
-        logger.info(completion.choices[0].message.content)
-        # return completion.choices[0].message.content
+        # completion = openai.chat.completions.create(
+        #     model=os.environ['OPENAI_MODEL_NAME'],
+        #     messages=self.prompts,
+        #     temperature=0.3,
+        #     user_id=os.environ['LANGFUSE_USER_ID'],
+        #     tags=["task-sonarqube"]
+        # )
+        # logger.info(completion.choices[0].message.content)
     

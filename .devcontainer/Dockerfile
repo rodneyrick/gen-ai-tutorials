@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/devcontainers/python:1-3.12-bullseye
 
 RUN apt-get update && \
-    apt-get install iputils-ping -y
+    apt-get install iputils-ping jq -y
 
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 

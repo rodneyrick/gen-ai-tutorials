@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo
+  namespace: cpfl
+  labels:
+    app: tempo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      labels:
+        app: tempo
+    spec:
+      imagePullSecrets:
+        - name: acr-repo-cpfl
+      containers:
+        - name: tempo
+          image: acrcpfldistqazephyrus.azurecr.io/projeto-cpfl-zephyrus-tempo:latest
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 3200   # Tempo api
+          - containerPort: 4317   # otlp grpc 
+          - containerPort: 4318   # otlp http
+          resources:
+            limits:
+              cpu: "2"
+              memory:  1024Mi
+            requests:
+              cpu: "0.1"
+              memory:  100Mi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo-service
+  namespace: cpfl
+spec:
+  selector:
+    app: tempo
+  ports:
+    - name: tempo-api
+      protocol: TCP
+      port: 3200
+      targetPort: 3200
+    - name: otlp-grpc
+      protocol: TCP
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      protocol: TCP
+      port: 4318
+      targetPort: 4318

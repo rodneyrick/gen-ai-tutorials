@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: cpfl
+  labels:
+    app: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      imagePullSecrets:
+        - name: acr-repo-cpfl
+      containers:
+        - name: prometheus
+          image: acrcpfldistqazephyrus.azurecr.io/projeto-cpfl-zephyrus-prometheus:latest
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 9090   # Prometheus
+          resources:
+            limits:
+              cpu: "2"
+              memory:  1024Mi
+            requests:
+              cpu: "0.1"
+              memory:  100Mi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+  namespace: cpfl
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - name: prometheus
+      protocol: TCP
+      port: 9090
+      targetPort: 9090
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus-ingress
+  namespace: cpfl
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  rules:
+  - host: cpfl-zephyrus.akscpflzephyrus.qa
+    http:
+      paths:
+      - path: /prometheus
+        pathType: Prefix
+        backend:
+          service:
+            name: prometheus-service
+            port:
+              number: 9090
+  tls:
+  - hosts:
+    - cpfl-zephyrus.akscpflzephyrus.qa
+    secretName: ssl-cpfl
