@@ -7,6 +7,7 @@ import os
 logger = logging.getLogger()
 
 from app.prompts import create_prompt_list
+from app.telemetry import instrumented_trace
 from textwrap import dedent
 
 class TaskChangelog:
@@ -17,6 +18,7 @@ class TaskChangelog:
         self.range_commit = range_commit
         self.prompts = []
     
+    @instrumented_trace
     def _run(self):
         self.commits = self.tools_repos.run(tool_input={
             "project_name": self.project_name, 
@@ -27,6 +29,7 @@ class TaskChangelog:
         self.add_prompts()
         self.create_chat()
 
+    @instrumented_trace
     def add_prompts(self):
         self.prompts = create_prompt_list([
             {
@@ -51,29 +54,31 @@ class TaskChangelog:
             }
         ])
 
-    @observe()
+    # @observe()
+    @instrumented_trace
     def create_chat(self):
 
         # client = OpenAI(
         #     base_url=os.environ['OPENAI_BASE_URL'], 
         #     api_key=os.environ['OPENAI_API_KEY']
         # )
+        logger.debug("Create chat")
+        # logger.debug(self.commits)
+        # langfuse_context.update_current_trace(
+        #     tags=["task_changelog", f"repo: {self.project_name}"]
+        # )
         
-        langfuse_context.update_current_trace(
-            tags=["task_changelog", f"repo: {self.project_name}"]
-        )
+        # logger.debug(dedent(f"""
+        #     Git Commits: 
+        #     {self.commits}
+        # """))
         
-        logger.debug(dedent(f"""
-            Git Commits: 
-            {self.commits}
-        """))
-        
-        logger.info("Iniciando chat")
-        completion = openai.chat.completions.create(
-            model=os.environ['OPENAI_MODEL_NAME'],
-            messages=self.prompts,
-            temperature=0.3,
-            user_id=os.environ['LANGFUSE_USER_ID'],
-            tags=["task-changelog"]
-        )
-        logger.info(completion.choices[0].message.content)
+        # logger.info("Iniciando chat")
+        # completion = openai.chat.completions.create(
+        #     model=os.environ['OPENAI_MODEL_NAME'],
+        #     messages=self.prompts,
+        #     temperature=0.3,
+        #     user_id=os.environ['LANGFUSE_USER_ID'],
+        #     tags=["task-changelog"]
+        # )
+        # logger.info(completion.choices[0].message.content)

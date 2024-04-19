@@ -1,15 +1,14 @@
 from langchain.pydantic_v1 import BaseModel, Field, validator
-from typing import Optional, Type, Literal
 from langchain.tools import BaseTool
+from typing import Optional, Type
 from enum import Enum
 import subprocess
 import os
 
 from app.configs import logging, GitConfigurations
 from app.utils.commands import exec_command
+from app.telemetry import instrumented_trace
 logger = logging.getLogger()
-
-Functionalities = Literal["git_clone", "git_commits_range_id"]
 
 class GitFunctionalities(Enum):
     GIT_CLONE = "git_clone"
@@ -26,7 +25,7 @@ class GitInput(BaseModel):
         if values.get("function") == GitFunctionalities.GIT_COMMITS_RANGE_ID and v is None:
             raise ValueError("range_commit é obrigatório quando o parâmetro function é definido como git_commits_range_id")
         return v
-    
+      
 class ToolGit(BaseTool):
     name = "git"
     description = "useful for when you need to interact git repositories"
@@ -36,6 +35,7 @@ class ToolGit(BaseTool):
     url: str = ""
     range_commit: str = ""
 
+    @instrumented_trace()
     def _run(self, url: str, project_name: str, function: GitFunctionalities, range_commit: Optional[str] = None) -> str:
         """Use the tool."""
         try:
@@ -58,6 +58,7 @@ class ToolGit(BaseTool):
         """Use the tool asynchronously."""
         raise NotImplementedError("custom_search does not support async")
 
+    @instrumented_trace()
     def git_clone(self):
         
         if not os.path.exists(GitConfigurations.REPOS_PATH):
@@ -69,6 +70,7 @@ class ToolGit(BaseTool):
         logging.debug('O clone do repositorio git foi executado com sucesso')
         return True
     
+    @instrumented_trace()
     def git_commits_range_id(self):
         self.git_clone()
         

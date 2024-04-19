@@ -6,6 +6,7 @@ import requests
 import json
 
 from app.configs import logging, SonarConfigurations, SonarDomains
+from app.telemetry import instrumented_trace
 logger = logging.getLogger()
 
 class SonarAnalysisInput(BaseModel):
@@ -19,6 +20,7 @@ class ToolSonarAnalysis(BaseTool):
     description = "useful for when you need to colect applications metrics in the sonarqube"
     args_schema: Type[BaseModel] = SonarAnalysisInput
 
+    @instrumented_trace
     def _run(self, metric_name: Enum, url: str, project_name: str, token: str) -> str:
         try:
             metrics = self.analyze_metrics(metric_name=metric_name, project_name=project_name, url=url, token=token)
@@ -32,6 +34,7 @@ class ToolSonarAnalysis(BaseTool):
     async def _arun(self) -> str:
         raise NotImplementedError("custom_search does not support async")
 
+    @instrumented_trace
     def analyze_metrics(self, metric_name: str, project_name: str, token: str, url: str):
         results = []
         if metric_name in SonarDomains:
@@ -42,7 +45,8 @@ class ToolSonarAnalysis(BaseTool):
                     results.append(result)
             return results
         raise Exception(f"{metric_name} não é uma opção válida: {SonarDomains}")
-                    
+
+    @instrumented_trace            
     def request_metrics(self, metric_key: str, project_name: str, token: str, url: str):
         response = requests.get(
             f"{url}/api/measures/component?component={project_name}&metricKeys={metric_key}",
@@ -51,6 +55,7 @@ class ToolSonarAnalysis(BaseTool):
 
         return self.get_value_metric(response=response.json(), metric_name=metric_key)
     
+    @instrumented_trace(type="event")
     def get_value_metric(self, response, metric_name):
         response = response["component"]["measures"]
         metric_value = response[0]["value"] if len(response) > 0 else ""
@@ -59,7 +64,8 @@ class ToolSonarAnalysis(BaseTool):
         metric_value = metric_value.replace(',', ' | ')
         metric_value = metric_value.replace(':', ': ')
         return f'{metric_name}: {metric_value}'
-        
+    
+    @instrumented_trace(type="event") 
     def format_result(self, metrics):
         result = ""
         for evaluation in metrics:

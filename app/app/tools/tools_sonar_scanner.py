@@ -7,6 +7,7 @@ import time
 import os
 
 from app.configs import logging, GitConfigurations, SonarConfigurations
+from app.telemetry import instrumented_trace
 logger = logging.getLogger()
 
 class SonarScannerInput(BaseModel):
@@ -20,6 +21,7 @@ class ToolSonarScanner(BaseTool):
     args_schema: Type[BaseModel] = SonarScannerInput
     return_direct: bool = True
 
+    @instrumented_trace
     def _run(self, url: str, project_name: str, token: str) -> str:
         """Use the tool."""
         try:
@@ -39,6 +41,7 @@ class ToolSonarScanner(BaseTool):
         """Use the tool asynchronously."""
         raise NotImplementedError("custom_search does not support async")
 
+    @instrumented_trace(type="event")
     def verify_analysis_ready(self, url: str, project_name: str, token: str):
 
         analysis_ready = False
@@ -56,12 +59,14 @@ class ToolSonarScanner(BaseTool):
                 analysis_ready = True
             time.sleep(1)
 
+    @instrumented_trace(type="event")
     def create_sonar_project(self, url: str,token: str, project_name: str):
         requests.post(
             f"{url}/api/projects/create?project={project_name}&name={project_name}",
             headers={"Authorization": f"Bearer {token}"},
         )
     
+    @instrumented_trace
     def make_sonarqube_analysis(self, base_dir):
         logger.debug("Enviando repositório para o SonarQube")
         if not os.path.exists(SonarConfigurations.SONAR_SCANNER_PATH):
@@ -70,7 +75,8 @@ class ToolSonarScanner(BaseTool):
             exec_command(comando=['unzip', '-o', f'{SonarConfigurations.SONAR_DIR}/{SonarConfigurations.SONAR_SCANNER_VERSION}.zip', '-d', SonarConfigurations.SONAR_DIR], log_path="unzip_sonar_scanner.log")
             os.remove(f'{SonarConfigurations.SONAR_DIR}/{SonarConfigurations.SONAR_SCANNER_VERSION}.zip')
         exec_command(comando=[f'{SonarConfigurations.SONAR_SCANNER_PATH}/bin/sonar-scanner'], log_path='exec_sonar_scanner.log', cwd=base_dir)
-    
+
+    @instrumented_trace(type="event")
     def create_sonar_project_properties(self,base_dir: str, token: str, project_name: str, url: str):
         logger.info("Creating sonar-project.properties file")
         with open(f"{base_dir}/sonar-project.properties", "w") as file:

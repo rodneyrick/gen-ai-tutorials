@@ -11,5 +11,5 @@ if should_instrumentation():
         'service.name': 'gen.ai.tutorials',
     }
 
-    instrumentor = Instrumentation(grpc=True, resource_attributes_dict=resources_dict, 
+    Instrumentation(grpc=True, resource_attributes_dict=resources_dict, 
                     traces_exporter_url=os.environ['OTLP_TRACES_HOST'])

@@ -9,24 +9,28 @@ import os
 from typing import List
 
 from app.prompts import create_prompt_list
+from app.telemetry import instrumented_trace
 from textwrap import dedent
-from app.configs import logging, app_settings
+from app.configs import logging
 from app.utils import parser_config_toml_files, paths
 
-tools_settings = (
-    app_settings.properties |
-    parser_config_toml_files.run(
-        config_name='tools', 
-        dir_path="/workspaces/gen-ai-tutorials/app/app/tools/configs-toml"
-    ) |
-    parser_config_toml_files.run(
-        config_name='tools-sonar', 
-        dir_path="/workspaces/gen-ai-tutorials/app/app/tools/configs-toml"
-    )
-)
+# tools_settings = (
+#     app_settings.properties |
+#     parser_config_toml_files.run(
+#         config_name='tools', 
+#         dir_path="/workspaces/gen-ai-tutorials/app/app/tools/configs-toml"
+#     ) |
+#     parser_config_toml_files.run(
+#         config_name='tools-sonar', 
+#         dir_path="/workspaces/gen-ai-tutorials/app/app/tools/configs-toml"
+#     )
+# )
 
-DIR_PATH_METRICS = "/workspaces/gen-ai-tutorials/app/tools/sonarqube/metrics"
-METRICS = tools_settings['tools']['sonar']['analysis']['METRICS']
+# DIR_PATH_METRICS = "/workspaces/gen-ai-tutorials/app/tools/sonarqube/metrics"
+# METRICS = tools_settings['tools']['sonar']['analysis']['METRICS']
+
+DIR_PATH_METRICS = ""
+METRICS = ""
 
 logger = logging.getLogger()
 

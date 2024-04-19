@@ -1,13 +1,17 @@
 from app.tools import ToolSonarAnalysis, ToolSonarScanner, ToolGit, GitFunctionalities
-from app.configs import SonarDomains, load_dotenv, should_instrumentation, instrumentor
+from app.configs import SonarDomains, load_dotenv, should_instrumentation
+from opentelemetry.trace.propagation.tracecontext import \
+    TraceContextTextMapPropagator
 from app.callbacks import ToollCallbackHanlder
-from app.telemetry import ToolsInstruments
+from app.telemetry import ToolsInstruments, test_tracer, instrument
+from opentelemetry import trace
 import os
+
+from opentelemetry.propagate import set_global_textmap, get_global_textmap
 
 load_dotenv()
 
 def tool_sonar_scanner():
-    instrumentor.setting_instrumentation_tools(ToolsInstruments.TOOLS_SONAR_SCAN)
     tool_output = ToolSonarScanner().run(tool_input={"project_name": "fastapi-lib-observability",
                                                 "token": os.environ['SONAR_TOKEN'],
                                                 "url": os.environ['SONAR_HOST']},
@@ -15,7 +19,6 @@ def tool_sonar_scanner():
     return tool_output
 
 def tool_sonar_analysis():
-    instrumentor.setting_instrumentation_tools(ToolsInstruments.TOOLS_SONAR_ANALYSIS)
     tool_output = ToolSonarAnalysis().run(tool_input={"project_name": "fastapi-lib-observability",
                                                    "token": os.environ['SONAR_TOKEN'],
                                                    "url": os.environ['SONAR_HOST'],
@@ -24,7 +27,6 @@ def tool_sonar_analysis():
     return tool_output
 
 def tool_git_range_commit():
-    instrumentor.setting_instrumentation_tools(ToolsInstruments.TOOLS_GIT)
     tool_output = ToolGit().run(tool_input={"project_name": "rdpy-observability",
                                          "url": "https://github.com/lucasBritoo/rdpy-observability",
                                          "function": GitFunctionalities.GIT_COMMITS_RANGE_ID,
@@ -32,8 +34,8 @@ def tool_git_range_commit():
                              callbacks=[ToollCallbackHanlder()])
     return tool_output
 
+@instrument
 def tool_git_clone():
-    instrumentor.setting_instrumentation_tools(ToolsInstruments.TOOLS_GIT)
     tool_output = ToolGit().run(tool_input={"project_name": "rdpy-observability",
                                         "url": "https://github.com/lucasBritoo/rdpy-observability",
                                         "function": GitFunctionalities.GIT_CLONE.value},
