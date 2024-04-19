@@ -11,7 +11,7 @@ datasources:
     type: prometheus
     typeName: Prometheus
     access: proxy
-    url: http://prometheus-service:9090/prometheus
+    url: http://prometheus:9090
     password: ''
     user: ''
     database: ''
@@ -31,7 +31,7 @@ datasources:
     type: tempo
     typeName: Tempo
     access: proxy
-    url: http://tempo-service:3200
+    url: http://tempo:3200
     password: ''
     user: ''
     database: ''
@@ -51,7 +51,7 @@ datasources:
     type: loki
     typeName: Loki
     access: proxy
-    url: http://loki-service:3100
+    url: http://loki:3100
     password: ''
     user: ''
     database: ''

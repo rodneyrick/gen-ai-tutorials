@@ -13,10 +13,10 @@ exporters:
     verbosity: detailed
 
   otlphttp:
-    endpoint: "http://tempo-service:4318"
+    endpoint: "http://tempo:4318"
 
   loki:
-    endpoint: http://loki-service:3100/loki/api/v1/push
+    endpoint: http://loki:3100/loki/api/v1/push
     default_labels_enabled:
       exporter: false
       job: false
@@ -59,13 +59,13 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [debug]
+      exporters: [debug, otlphttp]
       processors: [batch,filter/health]
     metrics:
       receivers: [otlp]
-      exporters: [debug]
+      exporters: [debug, prometheus]
       processors: [batch]
     logs:
       receivers: [otlp]
-      exporters: [debug]
+      exporters: [debug, loki]
       processors: [batch,attributes,resource]
