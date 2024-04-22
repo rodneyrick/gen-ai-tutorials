@@ -16,10 +16,10 @@ spec:
         app: otelcollector
     spec:
       imagePullSecrets:
-        - name: acr-repo-cpfl
+        - name: secret-dockerhub
       containers:
         - name: otelcollector
-          image: acrcpfldistqazephyrus.azurecr.io/projeto-cpfl-zephyrus-otelcollector:latest
+          image: otelcollector:latest
           imagePullPolicy: Always
           ports:
           - containerPort: 8888   # Prometheus metrics exposed by the Collector
@@ -79,8 +79,7 @@ metadata:
     nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   rules:
-  - host: cpfl-zephyrus.akscpflzephyrus.qa
-    http:
+  - http:
       paths:
       - path: /otelcollector/prometheus-metrics-collector
         pathType: Prefix
@@ -117,7 +116,3 @@ spec:
             name: otelcollector-service
             port:
               number: 4318
-  tls:
-  - hosts:
-    - cpfl-zephyrus.akscpflzephyrus.qa
-    secretName: ssl-cpfl

@@ -16,10 +16,10 @@ spec:
         app: prometheus
     spec:
       imagePullSecrets:
-        - name: acr-repo-cpfl
+        - name: secret-dockerhub
       containers:
         - name: prometheus
-          image: acrcpfldistqazephyrus.azurecr.io/projeto-cpfl-zephyrus-prometheus:latest
+          image: prometheus:latest
           imagePullPolicy: Always
           ports:
           - containerPort: 9090   # Prometheus
@@ -59,8 +59,7 @@ metadata:
     nginx.ingress.kubernetes.io/use-regex: "true"
 spec:
   rules:
-  - host: cpfl-zephyrus.akscpflzephyrus.qa
-    http:
+  - http:
       paths:
       - path: /prometheus
         pathType: Prefix
@@ -69,7 +68,3 @@ spec:
             name: prometheus-service
             port:
               number: 9090
-  tls:
-  - hosts:
-    - cpfl-zephyrus.akscpflzephyrus.qa
-    secretName: ssl-cpfl

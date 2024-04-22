@@ -30,10 +30,10 @@ spec:
         app: loki
     spec:
       imagePullSecrets:
-        - name: acr-repo-cpfl
+        - name: secret-dockerhub
       containers:
         - name: loki
-          image: acrcpfldistqazephyrus.azurecr.io/projeto-cpfl-zephyrus-loki:latest
+          image: loki:latest
           imagePullPolicy: Always
           ports:
           - containerPort: 3100   # otlp grpc 

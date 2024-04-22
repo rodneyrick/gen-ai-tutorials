@@ -16,10 +16,10 @@ spec:
         app: tempo
     spec:
       imagePullSecrets:
-        - name: acr-repo-cpfl
+        - name: secret-dockerhub
       containers:
         - name: tempo
-          image: acrcpfldistqazephyrus.azurecr.io/projeto-cpfl-zephyrus-tempo:latest
+          image: tempo:latest
           imagePullPolicy: Always
           ports:
           - containerPort: 3200   # Tempo api

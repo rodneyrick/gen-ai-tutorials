@@ -56,12 +56,12 @@ spec:
         app: sonarqube
     spec:
       imagePullSecrets:
-        - name: docker-hub-tworpnet
+        - name: secret-dockerhub
       nodeSelector:
         kubernetes.io/hostname: k8s-node2-dev
       containers:
         - name: sonarqube
-          image: tworpdev/genai.sonarqube:10.5.0-community
+          image: sonarqube:10.5.0-community
           imagePullPolicy: Always
           ports:
           - containerPort: 9000   # Sonarqube 
