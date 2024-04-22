@@ -7,7 +7,7 @@ import os
 logger = logging.getLogger()
 
 from app.prompts import create_prompt_list
-from app.telemetry import instrumented_trace
+from app.telemetry import instrumented_trace, TraceInstruments
 from textwrap import dedent
 
 class TaskChangelog:
@@ -18,7 +18,7 @@ class TaskChangelog:
         self.range_commit = range_commit
         self.prompts = []
     
-    @instrumented_trace
+    @instrumented_trace()
     def _run(self):
         self.commits = self.tools_repos.run(tool_input={
             "project_name": self.project_name, 
@@ -29,7 +29,7 @@ class TaskChangelog:
         self.add_prompts()
         self.create_chat()
 
-    @instrumented_trace
+    @instrumented_trace(span_name="Add Prompts Template")
     def add_prompts(self):
         self.prompts = create_prompt_list([
             {
@@ -55,7 +55,7 @@ class TaskChangelog:
         ])
 
     # @observe()
-    @instrumented_trace
+    @instrumented_trace(span_name="Creating Chat", kind=TraceInstruments.SPAN_KIND_CLIENT)
     def create_chat(self):
 
         # client = OpenAI(

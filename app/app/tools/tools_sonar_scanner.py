@@ -7,7 +7,7 @@ import time
 import os
 
 from app.configs import logging, GitConfigurations, SonarConfigurations
-from app.telemetry import instrumented_trace
+from app.telemetry import instrumented_trace, TraceInstruments
 logger = logging.getLogger()
 
 class SonarScannerInput(BaseModel):
@@ -21,7 +21,7 @@ class ToolSonarScanner(BaseTool):
     args_schema: Type[BaseModel] = SonarScannerInput
     return_direct: bool = True
 
-    @instrumented_trace
+    @instrumented_trace()
     def _run(self, url: str, project_name: str, token: str) -> str:
         """Use the tool."""
         try:
@@ -29,8 +29,8 @@ class ToolSonarScanner(BaseTool):
             self.create_sonar_project(url=url, project_name=project_name, token=token)
             self.create_sonar_project_properties(base_dir=f"{GitConfigurations.REPOS_PATH}/{project_name}", token=token,
                                                  url=url, project_name=project_name)
-            self.make_sonarqube_analysis(base_dir=f"{GitConfigurations.REPOS_PATH}/{project_name}")
-            self.verify_analysis_ready(token=token, project_name=project_name, url=url)
+            self.make_sonarqube_analysis(base_dir=f"{GitConfigurations.REPOS_PATH}/{project_name}",
+                                         url=url, token=token, project_name=project_name)
             logging.debug("Análise do repositorio foi executada e econtra-se disponível no sonarqube")
             return True
         except Exception as e:
@@ -41,7 +41,8 @@ class ToolSonarScanner(BaseTool):
         """Use the tool asynchronously."""
         raise NotImplementedError("custom_search does not support async")
 
-    @instrumented_trace(type="event")
+    @instrumented_trace(span_name="Checking Analysis Ready", type=TraceInstruments.INSTRUMENTS_EVENT, 
+                        kind=TraceInstruments.SPAN_KIND_CLIENT, span_parameters=False)
     def verify_analysis_ready(self, url: str, project_name: str, token: str):
 
         analysis_ready = False
@@ -59,15 +60,16 @@ class ToolSonarScanner(BaseTool):
                 analysis_ready = True
             time.sleep(1)
 
-    @instrumented_trace(type="event")
+    @instrumented_trace(span_name="Creating Sonar Project", type=TraceInstruments.INSTRUMENTS_EVENT, 
+                        kind=TraceInstruments.SPAN_KIND_CLIENT, span_parameters=False)
     def create_sonar_project(self, url: str,token: str, project_name: str):
         requests.post(
             f"{url}/api/projects/create?project={project_name}&name={project_name}",
             headers={"Authorization": f"Bearer {token}"},
         )
     
-    @instrumented_trace
-    def make_sonarqube_analysis(self, base_dir):
+    @instrumented_trace(span_name="Sending Repo Sonarqube", kind=TraceInstruments.SPAN_KIND_CLIENT)
+    def make_sonarqube_analysis(self, base_dir: str, project_name: str, url: str, token: str):
         logger.debug("Enviando repositório para o SonarQube")
         if not os.path.exists(SonarConfigurations.SONAR_SCANNER_PATH):
             logging.info('Não foi encontrada uma instalação do sonar-scanner. Iniciando processo de download')
@@ -75,8 +77,10 @@ class ToolSonarScanner(BaseTool):
             exec_command(comando=['unzip', '-o', f'{SonarConfigurations.SONAR_DIR}/{SonarConfigurations.SONAR_SCANNER_VERSION}.zip', '-d', SonarConfigurations.SONAR_DIR], log_path="unzip_sonar_scanner.log")
             os.remove(f'{SonarConfigurations.SONAR_DIR}/{SonarConfigurations.SONAR_SCANNER_VERSION}.zip')
         exec_command(comando=[f'{SonarConfigurations.SONAR_SCANNER_PATH}/bin/sonar-scanner'], log_path='exec_sonar_scanner.log', cwd=base_dir)
+        self.verify_analysis_ready(token=token, project_name=project_name, url=url)
 
-    @instrumented_trace(type="event")
+    @instrumented_trace(span_name="Creating Sonar Properties", type=TraceInstruments.INSTRUMENTS_EVENT, 
+                        kind=TraceInstruments.SPAN_KIND_CLIENT, span_parameters=False)
     def create_sonar_project_properties(self,base_dir: str, token: str, project_name: str, url: str):
         logger.info("Creating sonar-project.properties file")
         with open(f"{base_dir}/sonar-project.properties", "w") as file:

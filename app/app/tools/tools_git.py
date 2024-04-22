@@ -5,9 +5,10 @@ from enum import Enum
 import subprocess
 import os
 
+from app.telemetry import instrumented_trace, TraceInstruments
 from app.configs import logging, GitConfigurations
 from app.utils.commands import exec_command
-from app.telemetry import instrumented_trace
+
 logger = logging.getLogger()
 
 class GitFunctionalities(Enum):
@@ -39,16 +40,17 @@ class ToolGit(BaseTool):
     def _run(self, url: str, project_name: str, function: GitFunctionalities, range_commit: Optional[str] = None) -> str:
         """Use the tool."""
         try:
-            self.repo_path = f'{GitConfigurations.REPOS_PATH}/{project_name}'
-            self.url = url
-            self.range_commit = range_commit
+            repo_path = f'{GitConfigurations.REPOS_PATH}/{project_name}'
 
             method = getattr(self, function.value, None)
             
             if not method:
                 raise Exception(f'Metodo nao encontrado: {function}')
             
-            return method()
+            if range_commit is not None:
+                return method(repo_path=repo_path, url=url, range_commit=range_commit)
+            
+            return method(repo_path=repo_path, url=url)
                 
         except Exception as e:
             logger.error(e)
@@ -58,25 +60,26 @@ class ToolGit(BaseTool):
         """Use the tool asynchronously."""
         raise NotImplementedError("custom_search does not support async")
 
-    @instrumented_trace()
-    def git_clone(self):
+    @instrumented_trace(span_name="Git Clone", kind=TraceInstruments.SPAN_KIND_CLIENT)
+    def git_clone(self, repo_path, url):
         
         if not os.path.exists(GitConfigurations.REPOS_PATH):
             os.mkdir(GitConfigurations.REPOS_PATH)
         
-        if not os.path.exists(self.repo_path):
-            exec_command(comando=['git', 'clone', self.url], log_path='clone_repo_git.log', cwd=GitConfigurations.REPOS_PATH)
+        if not os.path.exists(repo_path):
+            exec_command(comando=['git', 'clone', url], log_path='clone_repo_git.log', cwd=GitConfigurations.REPOS_PATH)
         
         logging.debug('O clone do repositorio git foi executado com sucesso')
         return True
     
-    @instrumented_trace()
-    def git_commits_range_id(self):
-        self.git_clone()
-        
-        comando = ['git', 'log', '--format=%B', '-n', str(GitConfigurations.MAX_COMMITS), self.range_commit]
+    @instrumented_trace(span_name="Git Commits by Range", kind=TraceInstruments.SPAN_KIND_CLIENT)
+    def git_commits_range_id(self, repo_path, range_commit, url):
 
-        with subprocess.Popen(comando, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=self.repo_path) as processo:
+        self.git_clone(repo_path=repo_path, url=url)
+        
+        comando = ['git', 'log', '--format=%B', '-n', str(GitConfigurations.MAX_COMMITS), range_commit]
+
+        with subprocess.Popen(comando, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=repo_path) as processo:
             commits, _ = processo.communicate()
 
         linhas = commits.decode('utf-8').splitlines()

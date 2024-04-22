@@ -1,13 +1,7 @@
 from app.tools import ToolSonarAnalysis, ToolSonarScanner, ToolGit, GitFunctionalities
-from app.configs import SonarDomains, load_dotenv, should_instrumentation
-from opentelemetry.trace.propagation.tracecontext import \
-    TraceContextTextMapPropagator
+from app.configs import SonarDomains, load_dotenv
 from app.callbacks import ToollCallbackHanlder
-from app.telemetry import ToolsInstruments, test_tracer, instrument
-from opentelemetry import trace
 import os
-
-from opentelemetry.propagate import set_global_textmap, get_global_textmap
 
 load_dotenv()
 
@@ -22,7 +16,7 @@ def tool_sonar_analysis():
     tool_output = ToolSonarAnalysis().run(tool_input={"project_name": "fastapi-lib-observability",
                                                    "token": os.environ['SONAR_TOKEN'],
                                                    "url": os.environ['SONAR_HOST'],
-                                                   "metric_name": SonarDomains.SONAR_DOMAIN_ISSUES},
+                                                   "domain": SonarDomains.SONAR_DOMAIN_ISSUES},
                                        callbacks=[ToollCallbackHanlder()])
     return tool_output
 
@@ -34,7 +28,6 @@ def tool_git_range_commit():
                              callbacks=[ToollCallbackHanlder()])
     return tool_output
 
-@instrument
 def tool_git_clone():
     tool_output = ToolGit().run(tool_input={"project_name": "rdpy-observability",
                                         "url": "https://github.com/lucasBritoo/rdpy-observability",
@@ -42,4 +35,4 @@ def tool_git_clone():
                             callbacks=[ToollCallbackHanlder()])
     return tool_output
 
-print(tool_git_clone())
+print(tool_sonar_scanner())

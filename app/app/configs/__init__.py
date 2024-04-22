@@ -1,6 +1,7 @@
 from app.configs.logging import logging
 from app.configs.tools import SonarConfigurations, SonarDomains, GitConfigurations
-from app.telemetry import ToolsInstruments, Instrumentation, should_instrumentation
+from app.telemetry import Instrumentation, should_instrumentation
+from opentelemetry.sdk.resources import SERVICE_NAME
 
 from dotenv import load_dotenv
 import os
@@ -8,7 +9,7 @@ import os
 
 if should_instrumentation():
     resources_dict = {
-        'service.name': 'gen.ai.tutorials',
+        SERVICE_NAME: 'gen.ai.tutorials',
     }
 
     Instrumentation(grpc=True, resource_attributes_dict=resources_dict, 

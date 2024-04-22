@@ -1,4 +1,4 @@
-FROM grafana/grafana:10.1.2
+FROM grafana/grafana:10.4.1
 
 # Config Datasources
 ADD datasource.yml /etc/grafana/provisioning/datasources/

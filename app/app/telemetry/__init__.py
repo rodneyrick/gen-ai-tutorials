@@ -1,5 +1,5 @@
 from app.telemetry.instrumentation import (
     Instrumentation, 
-    ToolsInstruments, 
+    TraceInstruments, 
     should_instrumentation, 
     instrumented_trace)

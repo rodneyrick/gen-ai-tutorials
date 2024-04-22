@@ -9,28 +9,9 @@ import os
 from typing import List
 
 from app.prompts import create_prompt_list
-from app.telemetry import instrumented_trace
+from app.telemetry import instrumented_trace, TraceInstruments
 from textwrap import dedent
-from app.configs import logging
-from app.utils import parser_config_toml_files, paths
-
-# tools_settings = (
-#     app_settings.properties |
-#     parser_config_toml_files.run(
-#         config_name='tools', 
-#         dir_path="/workspaces/gen-ai-tutorials/app/app/tools/configs-toml"
-#     ) |
-#     parser_config_toml_files.run(
-#         config_name='tools-sonar', 
-#         dir_path="/workspaces/gen-ai-tutorials/app/app/tools/configs-toml"
-#     )
-# )
-
-# DIR_PATH_METRICS = "/workspaces/gen-ai-tutorials/app/tools/sonarqube/metrics"
-# METRICS = tools_settings['tools']['sonar']['analysis']['METRICS']
-
-DIR_PATH_METRICS = ""
-METRICS = ""
+from app.configs import logging, SonarConfigurations, SonarDomains
 
 logger = logging.getLogger()
 
@@ -38,8 +19,7 @@ class TaskSonarqube:
     
     def __init__(self, tools_repos, tools_analysis, tools_scanners, 
                  project_name: str, url_repo: str, sonar_token: str, sonar_url: str,
-                 metric_name: str = "",
-                 metric_list: List[str] = [],
+                 metric_list: List[SonarDomains] = [],
                  callbacks: BaseCallbackHandler = None):
         self.tools_repos = tools_repos
         self.tools_analysis = tools_analysis
@@ -48,25 +28,27 @@ class TaskSonarqube:
         self.url_repo = url_repo
         self.sonar_token = sonar_token
         self.sonar_url = sonar_url
-        self.metrics_name = metric_name
+        self.metrics_list = metric_list
         self.callbacks = callbacks
-        self.add_metrics(metric_json_items=metric_list)
 
+    @instrumented_trace()
     def _run(self):
-        # self.tools_repos.run(tool_input={"project_name": self.project_name, "url": self.url_repo,
-        #                                  "function": 'git_clone'},
-        #                      callbacks=self.callbacks)
+        self.tools_repos.run(tool_input={"project_name": self.project_name, "url": self.url_repo,
+                                         "function": 'git_clone'},
+                             callbacks=self.callbacks)
 
-        # self.tools_scanners.run(tool_input={"project_name": self.project_name, "token": self.sonar_token, 
-        #                                   "url": self.sonar_url},
-        #                         callbacks=self.callbacks)
-        try:
-            metric_name = self.get_metric_json()
+        self.tools_scanners.run(tool_input={"project_name": self.project_name, "token": self.sonar_token, 
+                                          "url": self.sonar_url},
+                                callbacks=self.callbacks)
+        
+        for domain in self.metrics_list:
+            
+            logger.info(f"Selecting domain=`{domain}`")
             self.analysis = self.tools_analysis.run(tool_input={"project_name": self.project_name, "token": self.sonar_token,
-                                                "url": self.sonar_url, "metric_name": metric_name},
+                                                "url": self.sonar_url, "metric_name": domain},
                                                     callbacks=self.callbacks)
             
-            json_data = self.get_info_from_json_file(metric_name)
+            json_data = self.get_info_from_json_file(domain.value)
             self.domain_name, self.domain_description = self.get_domain(json_data)
             metrics_description = self.extract_keys_and_descriptions(json_data)
             metrics_results = self.analysis
@@ -87,11 +69,8 @@ class TaskSonarqube:
                 metrics_results=metrics_results
             )
             self._create_chat()
-            
-            self._run()
-        except StopIteration:
-            logger.debug("No metrics")
 
+    @instrumented_trace(span_name="Add Prompts Template")
     def add_prompts(self, domain_name, domain_description, metrics_description, metrics_results):
         self.prompts = create_prompt_list([
             {
@@ -125,12 +104,14 @@ class TaskSonarqube:
             }
         ])
 
+    @instrumented_trace(span_name="Load Domain Json", type=TraceInstruments.INSTRUMENTS_EVENT)
     def get_info_from_json_file(self, metric_json) -> dict:
-        path_file_metric_json = f"{DIR_PATH_METRICS}/{metric_json}.json"
+        path_file_metric_json = f"{SonarConfigurations.PATH_METRICS}/{metric_json}"
         with open(path_file_metric_json, 'r') as arquivo:
             json_data = json.load(arquivo)
         return json_data
 
+    @instrumented_trace(span_name="Reading METRIC and DESCRIPTION")
     def extract_keys_and_descriptions(self, json_data):
         logger.info("Reading METRIC and DESCRIPTION informations")
         metrics = json_data["Metrics"]
@@ -139,33 +120,21 @@ class TaskSonarqube:
             result += f"- {metric['key']}: {metric['description']}\n"
         return result
 
-    def add_metrics(self, metric_json_items: List[str]):
-        logger.info("Adding metrics to evaluate list")
-        self.metrics_json_list = metric_json_items
-        if not self.metrics_json_list:
-            self.metrics_json_list = [f"{item}" for item in METRICS]
-        else:
-            self.metrics_json_list = [f"{item}" for item in self.metrics_json_list]
-        self.metrics_json_list = iter(self.metrics_json_list)
-
-    def get_metric_json(self):
-        metric_json_item = next(self.metrics_json_list)
-        logger.info(f"Selecting metric=`{metric_json_item}`")
-        return metric_json_item
-
+    @instrumented_trace(span_name="Reading DOMAIN and CONTEXT", type=TraceInstruments.INSTRUMENTS_EVENT)
     def get_domain(self, json_data):
         logger.info("Reading DOMAIN and CONTEXT informations")
         return json_data['Domain'], json_data['Context']
 
     # @observe()
+    @instrumented_trace(span_name="Creating Chat", kind=TraceInstruments.SPAN_KIND_CLIENT)
     def _create_chat(self):
         logger.debug("Create chat")
-        # chat = create_chat(openai_api_key=os.environ['OPENAI_API_KEY'],
-        #                    openai_api_base=os.environ['OPENAI_BASE_URL'],
-        #                    model=os.environ['OPENAI_MODEL_NAME'],
-        #                    temperature=0.3)
+        chat = create_chat(openai_api_key=os.environ['OPENAI_API_KEY'],
+                           openai_api_base=os.environ['OPENAI_BASE_URL'],
+                           model=os.environ['OPENAI_MODEL_NAME'],
+                           temperature=0.3)
         
-        # chat.invoke(self.prompts)
+        chat.invoke(self.prompts)
         
         #--------------------------------#
         # client = OpenAI(

@@ -4,7 +4,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry import context as context_api
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.trace import get_current_span
-from typing import Callable, Dict
+from typing import Callable, Dict, List
 from opentelemetry import trace
 from functools import wraps
 import os
@@ -12,11 +12,20 @@ import os
 from app.configs import logging
 logger = logging.getLogger()
 
-class ToolsInstruments():
-    TOOLS_SONAR_ANALYSIS = "tools_sonar_analysis.json"
-    TOOLS_SONAR_SCAN = "tools_sonar_scan.json"
-    TOOLS_GIT = "tools_git.json"
+attributes_black_list: List[str] = [
+    'data',
+    'token'
+]
 
+class TraceInstruments():
+    INSTRUMENTS_EVENT = "event"
+    INSTRUMENTS_TRACE = "trace"
+    SPAN_KIND_CLIENT = trace.SpanKind.CLIENT
+    SPAN_KIND_SERVER = trace.SpanKind.SERVER
+    SPAN_KIND_INTERNAL = trace.SpanKind.INTERNAL
+    SPAN_KIND_PRODUCER = trace.SpanKind.PRODUCER
+    SPAN_KIND_CONSUMER = trace.SpanKind.CONSUMER
+    
 class Instrumentation():
 
     def __init__(self, **kwargs):
@@ -50,17 +59,19 @@ class TracingOptions:
             return func.__qualname__.split('.')[0] if '.' in func.__qualname__ else "span.no_name"
 
         @staticmethod
-        def function_attributes(func: Callable, user_attributes, **kwargs):
+        def function_attributes(func: Callable, user_attributes, span_parameters,**kwargs):
             attributes = {
                 "module": func.__module__,
                 "method": func.__name__
             }
             
-            for key, value in kwargs.items():
-                if (lambda value: type(value) in {bool, str, bytes, int, float}):
-                    value = str(value)
-                
-                attributes[key] = value
+            if span_parameters:
+                for key, value in kwargs.items():
+                    if key not in attributes_black_list:
+                        if (lambda value: type(value) in {bool, str, bytes, int, float}):
+                            value = str(value)
+                    
+                        attributes[key] = value
             
             if user_attributes is not None:
                 for key in user_attributes:
@@ -74,8 +85,11 @@ class TracingOptions:
     naming_scheme: Callable[[Callable], str] = Attributes.default_scheme
     attributes: Callable[[Callable], str] = Attributes.attributes
 
+
 def instrumented_trace(_func=None, *,  span_name: str = "", record_exception: bool = True,
-               attributes: Dict[str, str] = None, type: str = "span"):
+               attributes: Dict[str, str] = None, type: TraceInstruments = TraceInstruments.INSTRUMENTS_TRACE,
+               kind: TraceInstruments = TraceInstruments.SPAN_KIND_INTERNAL,
+               span_parameters: bool = True):
 
     def span_decorator(func):
         tracer = trace.get_tracer(func.__module__)
@@ -88,12 +102,12 @@ def instrumented_trace(_func=None, *,  span_name: str = "", record_exception: bo
         @wraps(func)
         def wrap_with_span(*args, **kwargs):
             name = span_name or TracingOptions.naming_scheme(func)
-            span_attributes = TracingOptions.attributes(func, attributes, **kwargs)
+            span_attributes = TracingOptions.attributes(func, attributes, span_parameters, **kwargs)
             
-            if type == 'event':
+            if type == TraceInstruments.INSTRUMENTS_EVENT:
                 return span_event(name, span_attributes, *args, **kwargs)
             
-            return span(name, span_attributes, *args, **kwargs)
+            return span(name, span_attributes, kind, *args, **kwargs)
 
         def span_event(name, span_attributes, *args, **kwargs):
             current_span = get_current_span()
@@ -102,8 +116,8 @@ def instrumented_trace(_func=None, *,  span_name: str = "", record_exception: bo
             
             return func(*args, **kwargs)
         
-        def span(name, span_attributes,  *args, **kwargs):
-            with tracer.start_as_current_span(name, record_exception=record_exception) as span:
+        def span(name, span_attributes,  kind, *args, **kwargs):
+            with tracer.start_as_current_span(name, record_exception=record_exception, kind=kind) as span:
                 _set_attributes(span, span_attributes)
                 return func(*args, **kwargs)
     
