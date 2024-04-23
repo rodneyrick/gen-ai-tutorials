@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: sonarqube-pv
+  name: ollama-pv
   namespace: gen-ai
 spec:
   storageClassName: standard
   capacity:
-    storage: 10Gi
+    storage: 50Gi
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
   local:
-    path: /mnt/genai-sonarqube
+    path: /mnt/genai-ollama
   nodeAffinity:
     required:
       nodeSelectorTerms:
@@ -26,7 +26,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: sonarqube-pvc
+  name: ollama-pvc
   namespace: gen-ai
 spec:
   storageClassName: standard
@@ -34,88 +34,90 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 50Gi
 
 ---
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sonarqube
+  name: ollama
   namespace: gen-ai
   labels:
-    app: sonarqube
+    app: ollama
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: sonarqube
+      app: ollama
   template:
     metadata:
       labels:
-        app: sonarqube
+        app: ollama
     spec:
       imagePullSecrets:
         - name: docker-hub-tworpnet
       nodeSelector:
         kubernetes.io/hostname: k8s-node2-dev
       containers:
-        - name: sonarqube
-          image: sonarqube:10.5.0-community
+        - name: ollama
+          image: genai.ollama:0.1.32
           imagePullPolicy: Always
           ports:
-          - containerPort: 9000   # Sonarqube 
+          - containerPort: 11434   # API Ollama
           resources:
             limits:
               cpu: "1"
               memory:  2048Mi
             requests:
-              cpu: "0.1"
-              memory:  100Mi
+              cpu: "0.5"
+              memory:  500Mi
           volumeMounts:
-            - name: sonarqube-data
-              mountPath: /opt/sonarqube/data
+            - name: ollama-data
+              mountPath: /root/.ollama
       securityContext:
         fsGroup: 1000
       volumes:
-        - name: sonarqube-data
+        - name: ollama-data
           persistentVolumeClaim:
-            claimName: sonarqube-pvc
+            claimName: ollama-pvc
 
 ---
 
 apiVersion: v1
 kind: Service
 metadata:
-  name: sonarqube-service
+  name: ollama-service
   namespace: gen-ai
 spec:
   selector:
-    app: sonarqube
+    app: ollama
   ports:
-    - name: sonarqube
+    - name: ollama
       protocol: TCP
-      port: 9000
-      targetPort: 9000
+      port: 11434
+      targetPort: 11434
 
 ---
 
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: sonarqube-ingress
+  name: ollama-ingress
   namespace: gen-ai
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "1200"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "1200"
 spec:
   ingressClassName: nginx
   rules:
   - http:
       paths:
-      - path: /sonarqube
+      - path: /
         pathType: Prefix
         backend:
           service:
-            name: sonarqube-service
+            name: ollama-service
             port:
-              number: 9000
+              number: 11434
