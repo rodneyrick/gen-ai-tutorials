@@ -66,6 +66,27 @@ services:
     restart: always
     networks:
       - llm-net
+
+  ollama:
+    container_name: ollama
+    build:
+      context: ollama
+    ports:
+      - 11434:11434   # Ollama API
+    restart: always
+    networks:
+      - llm-net
+
+  qdrant:
+    container_name: qdrant
+    build:
+      context: qdrant
+    ports:
+      - 6333:6333 # Qdrant Web
+      - 6334:6334 # Qdrant GRPC
+    restart: always
+    networks:
+      - llm-net
   
 networks:
   llm-net:
