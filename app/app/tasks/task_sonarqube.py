@@ -4,11 +4,10 @@ from langchain_core.callbacks import BaseCallbackHandler
 from app.configs import logging
 import json
 import os
-# from langfuse.decorators import observe, langfuse_context
-# from langfuse.openai import openai
 from typing import List
 
 from app.prompts import create_prompt_list
+from app.tools import ToolChatLLM
 from app.telemetry import instrumented_trace, TraceInstruments
 from textwrap import dedent
 from app.configs import logging, SonarConfigurations, SonarDomains
@@ -33,19 +32,19 @@ class TaskSonarqube:
 
     @instrumented_trace()
     def _run(self):
-        self.tools_repos.run(tool_input={"project_name": self.project_name, "url": self.url_repo,
-                                         "function": 'git_clone'},
-                             callbacks=self.callbacks)
+        # self.tools_repos.run(tool_input={"project_name": self.project_name, "url": self.url_repo,
+        #                                  "function": 'git_clone'},
+        #                      callbacks=self.callbacks)
 
-        self.tools_scanners.run(tool_input={"project_name": self.project_name, "token": self.sonar_token, 
-                                          "url": self.sonar_url},
-                                callbacks=self.callbacks)
+        # self.tools_scanners.run(tool_input={"project_name": self.project_name, "token": self.sonar_token, 
+        #                                   "url": self.sonar_url},
+        #                         callbacks=self.callbacks)
         
         for domain in self.metrics_list:
             
             logger.info(f"Selecting domain=`{domain}`")
             self.analysis = self.tools_analysis.run(tool_input={"project_name": self.project_name, "token": self.sonar_token,
-                                                "url": self.sonar_url, "metric_name": domain},
+                                                "url": self.sonar_url, "domain": domain},
                                                     callbacks=self.callbacks)
             
             json_data = self.get_info_from_json_file(domain.value)
@@ -125,33 +124,15 @@ class TaskSonarqube:
         logger.info("Reading DOMAIN and CONTEXT informations")
         return json_data['Domain'], json_data['Context']
 
-    # @observe()
     @instrumented_trace(span_name="Creating Chat", kind=TraceInstruments.SPAN_KIND_CLIENT)
     def _create_chat(self):
         logger.debug("Create chat")
-        chat = create_chat(openai_api_key=os.environ['OPENAI_API_KEY'],
-                           openai_api_base=os.environ['OPENAI_BASE_URL'],
-                           model=os.environ['OPENAI_MODEL_NAME'],
-                           temperature=0.3)
-        
-        chat.invoke(self.prompts)
-        
-        #--------------------------------#
-        # client = OpenAI(
-        #     base_url=os.environ['OPENAI_BASE_URL'], 
-        #     api_key=os.environ['OPENAI_API_KEY']
-        # )
 
-        # langfuse_context.update_current_trace(
-        #     tags=["task_sonarqube", f"domain: {self.domain_name}", f"repo: {self.project_name}"]
-        # )
+        chat = ToolChatLLM().run(tool_input={"model": os.environ['OPENAI_MODEL_NAME'], 
+                                             "api_key": os.environ['OPENAI_API_KEY'],
+                                             "api_base": os.environ['OPENAI_BASE_URL'],
+                                             "prompt": self.prompts,
+                                             "streaming": False})
         
-        # completion = openai.chat.completions.create(
-        #     model=os.environ['OPENAI_MODEL_NAME'],
-        #     messages=self.prompts,
-        #     temperature=0.3,
-        #     user_id=os.environ['LANGFUSE_USER_ID'],
-        #     tags=["task-sonarqube"]
-        # )
-        # logger.info(completion.choices[0].message.content)
+        print(chat)
     

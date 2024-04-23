@@ -32,5 +32,5 @@ task = TaskSonarqube(tools_repos=ToolGit(),
                      url_repo="https://github.com/lucasBritoo/rdpy-observability",
                      sonar_token=os.environ['SONAR_TOKEN'],
                      sonar_url="http://192.168.3.241/sonarqube",
-                     metric_list=[SonarDomains.SONAR_DOMAIN_COMPLEXITY])
+                     metric_list=[SonarDomains.SONAR_DOMAIN_ISSUES])
 task._run()

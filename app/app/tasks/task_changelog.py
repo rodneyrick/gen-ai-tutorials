@@ -1,12 +1,11 @@
 from app.configs import logging
 from openai import OpenAI
-from langfuse.decorators import observe, langfuse_context
-from langfuse.openai import openai
 import os
 
 logger = logging.getLogger()
 
 from app.prompts import create_prompt_list
+from app.tools import ToolChatLLM
 from app.telemetry import instrumented_trace, TraceInstruments
 from textwrap import dedent
 
@@ -54,31 +53,15 @@ class TaskChangelog:
             }
         ])
 
-    # @observe()
     @instrumented_trace(span_name="Creating Chat", kind=TraceInstruments.SPAN_KIND_CLIENT)
     def create_chat(self):
-
-        # client = OpenAI(
-        #     base_url=os.environ['OPENAI_BASE_URL'], 
-        #     api_key=os.environ['OPENAI_API_KEY']
-        # )
+        
         logger.debug("Create chat")
-        # logger.debug(self.commits)
-        # langfuse_context.update_current_trace(
-        #     tags=["task_changelog", f"repo: {self.project_name}"]
-        # )
         
-        # logger.debug(dedent(f"""
-        #     Git Commits: 
-        #     {self.commits}
-        # """))
+        chat = ToolChatLLM().run(tool_input={"model": os.environ['OPENAI_MODEL_NAME'], 
+                                             "api_key": os.environ['OPENAI_API_KEY'],
+                                             "api_base": os.environ['OPENAI_BASE_URL'],
+                                             "prompt": self.prompts,
+                                             "streaming": False})
         
-        # logger.info("Iniciando chat")
-        # completion = openai.chat.completions.create(
-        #     model=os.environ['OPENAI_MODEL_NAME'],
-        #     messages=self.prompts,
-        #     temperature=0.3,
-        #     user_id=os.environ['LANGFUSE_USER_ID'],
-        #     tags=["task-changelog"]
-        # )
-        # logger.info(completion.choices[0].message.content)
+        print(chat)
