@@ -4,4 +4,4 @@
     updated=2024-04-11T22:42:00Z
 
 [default]
-    REPOS_PATH="/tmp"
+    REPOS_PATH="/workspaces/gen-ai-tutorials/app/tmp"

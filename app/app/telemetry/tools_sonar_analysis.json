@@ -1,0 +1,30 @@
+[
+    {
+        "package": "app.tools",
+        "object": "ToolSonarAnalysis",
+        "method": "_run",
+        "attributes": {"domain": "metric_name", "repository": "project_name", "sonar.url": "url"},
+        "type": "trace"
+    },
+    {
+        "package": "app.tools",
+        "object": "ToolSonarAnalysis",
+        "method": "analyze_metrics",
+        "attributes": {"domain": "metric_name", "repository": "project_name"},
+        "type": "trace"
+    },
+    {
+        "package": "app.tools",
+        "object": "ToolSonarAnalysis",
+        "method": "request_metrics",
+        "attributes": {"metric": "metric_key", "repository": "project_name"},
+        "type": "trace"
+    },
+    {
+        "package": "app.tools",
+        "object": "ToolSonarAnalysis",
+        "method": "get_value_metric",
+        "type": "event",
+        "attributes": {"metric": "metric_name"}
+    }
+]

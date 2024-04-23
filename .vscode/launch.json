@@ -19,7 +19,14 @@
             "type": "debugpy",
             "request": "launch",
             "module": "config_params",
-            "cwd": "${workspaceFolder}/app/app",
+            "cwd": "${workspaceFolder}/app/app/examples",
+        },
+        {
+            "name": "run_tool",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "tools",
+            "cwd": "${workspaceFolder}/app/app/examples",
         }
     ]
 }

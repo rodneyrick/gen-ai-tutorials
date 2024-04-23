@@ -16,8 +16,9 @@ ollama_model = Nome do modelo usado.
 
 from app.tasks.task_sonarqube import TaskSonarqube
 from app.tools import ToolSonarScanner, ToolSonarAnalysis, ToolGit
+from app.callbacks import ToollCallbackHanlder
 from app.tasks import TaskSonarqube
-from app.configs import load_dotenv, logging
+from app.configs import load_dotenv, logging, SonarDomains
 import os
 
 load_dotenv()
@@ -26,9 +27,10 @@ logging.debug("Iniciando Task")
 task = TaskSonarqube(tools_repos=ToolGit(),
                      tools_analysis=ToolSonarAnalysis(),
                      tools_scanners=ToolSonarScanner(),
-                     project_name="fastapi-lib-observability",
-                     url_repo="https://github.com/lucasBritoo/fastapi-lib-observability",
+                     callbacks=[ToollCallbackHanlder()],
+                     project_name="rdpy-observability",
+                     url_repo="https://github.com/lucasBritoo/rdpy-observability",
                      sonar_token=os.environ['SONAR_TOKEN'],
-                     sonar_url="http://sonarqube:9000",
-                     metric_name="complexity")
+                     sonar_url="http://192.168.3.241/sonarqube",
+                     metric_list=[SonarDomains.SONAR_DOMAIN_ISSUES])
 task._run()

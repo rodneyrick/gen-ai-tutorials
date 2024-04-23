@@ -7,6 +7,14 @@
             "label": "Install Extensions",
             "type": "shell",
             "command": ".vscode/extensions/installExtensions.sh",
+            "args": ["${cwd}/.vscode/extensions/extensions.json"],
+            "problemMatcher": []
+        },
+        {
+            "label": "Install Extensions - Lite",
+            "type": "shell",
+            "command": ".vscode/extensions/installExtensions.sh",
+            "args": ["${cwd}/.vscode/extensions/extensions.lite.json"],
             "problemMatcher": []
         }
         // {

@@ -1,0 +1,33 @@
+[
+    {
+        "package": "app.tools",
+        "object": "ToolSonarScanner",
+        "method": "_run",
+        "attributes": {"repository": "project_name", "sonar.url": "url"},
+        "type": "trace"
+    },
+    {
+        "package": "app.tools",
+        "object": "ToolSonarScanner",
+        "method": "create_sonar_project",
+        "type": "event"
+    },
+    {
+        "package": "app.tools",
+        "object": "ToolSonarScanner",
+        "method": "create_sonar_project_properties",
+        "type": "event"
+    },
+    {
+        "package": "app.tools",
+        "object": "ToolSonarScanner",
+        "method": "make_sonarqube_analysis",
+        "type": "trace"
+    },
+    {
+        "package": "app.tools",
+        "object": "ToolSonarScanner",
+        "method": "verify_analysis_ready",
+        "type": "event"
+    }
+]
