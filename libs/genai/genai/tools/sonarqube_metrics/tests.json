@@ -1,0 +1,18 @@
+{
+    "Domain": "Tests",
+    "Context": "The Tests domain in source code metrics focuses on evaluating the coverage and effectiveness of unit tests. This includes metrics such as condition coverage, line coverage, and metrics related to the execution of unit tests. Condition coverage analyzes whether each boolean expression in lines of code was evaluated as both true and false during test execution. Line coverage indicates whether each line of code was executed during the tests. Additional metrics include the total number of unit tests, test execution duration, number of errors and failures in tests, and the test success density, which calculates the percentage of successful tests relative to the total tests. These metrics are crucial to ensure the quality and reliability of the software, providing insights into the effectiveness of the implemented tests",
+    "Metrics": [
+        {
+            "key": "coverage",
+            "description": "A mix of Line coverage and Condition coverage. It's goal is to provide an even more accurate answer the question  'How much of the source code has been covered by the unit tests?'. Coverage = (CT + CF + LC)/(2*B + EL) where: CT = conditions that have been evaluated to 'true' at least once. CF = conditions that have been evaluated to 'false' at least once. LC = covered lines = linestocover - uncovered_lines. B = total number of conditions. EL = total number of executable lines (lines_to_cover)"
+        },
+        {
+            "key": "line_coverage",
+            "description": "On a given line of code, Line coverage simply answers the question 'Has this line of code been executed during the execution of the unit tests?'. It is the density of covered lines by unit tests: Line coverage = LC / EL where: LC = covered lines (lines_to_cover - uncovered_lines). EL = total number of executable lines (lines_to_cover)"
+        },
+        {
+            "key": "lines_to_cover",
+            "description": "Coverable lines. The number of lines of code that could be covered by unit tests (for example, blank lines or full comments lines are not considered as lines to cover). Note that this metric is about what is possible, not what is left to do (that's uncovered_lines)"
+        }
+    ]
+}

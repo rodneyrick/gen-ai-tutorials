@@ -1,0 +1,19 @@
+{
+    "Domain": "Complexity",
+    "Context": "The Complexity domain in source code metrics refers to the complexity of the code, primarily measured by cyclomatic complexity. Cyclomatic complexity is a quantitative metric that calculates the number of paths through the code. Each time the control flow of a function branches, the complexity counter is incremented by one. Each function has a minimum complexity of 1. This metric may vary slightly depending on the programming language due to language-specific keywords and features. Additionally, cognitive complexity is an additional measure that assesses how difficult it is to understand the control flow of the code. This metric provides insight into the mental complexity involved in understanding the code beyond simple path counting",
+    "Metrics": [
+        {
+            "key": "cognitive_complexity",
+            "description": "How hard it is to understand the code's control flow. See the Cognitive Complexity white paper for a complete description of the mathematical model applied to compute this measure"
+        },
+        {
+            "key": "file_complexity",
+            "description": "Complexity average by file"
+        },
+        {
+            "key": "complexity",
+            "description": "Complexity refers to Cyclomatic complexity, a quantitative metric used to calculate the number of paths through the code. Whenever the control flow of a function splits, the complexity counter gets incremented by one. Each function has a minimum complexity of 1. This calculation varies slightly by language because keywords and functionalities do"
+        }
+    ]
+}
+

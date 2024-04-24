@@ -1,0 +1,30 @@
+{
+    "Domain": "Security",
+    "Context": "The Security domain in source code metrics deals with the identification and management of security vulnerabilities and threats. It includes measures such as the total number of vulnerabilities, both in existing code and in new code, as well as security classification based on the severity of the vulnerabilities found. The security remediation effort metric indicates the time required to fix all identified vulnerabilities. Additionally, the number of critical security points and their review are monitored to ensure the effectiveness of implemented security measures. These metrics are essential to ensure the integrity and robustness of the software against potential threats",
+    "Metrics": [
+        {
+            "key": "vulnerabilities",
+            "description": "The number of vulnerability issues"
+        },
+        {
+            "key": "security_rating",
+            "description": "Security rating. A = 0 Vulnerabilities. B = at least 1 Minor Vulnerability.C = at least 1 Major Vulnerability.D = at least 1 Critical Vulnerability.E = at least 1 Blocker Vulnerability"
+        },
+        {
+            "key": "security_remediation_effort",
+            "description": "The effort to fix all vulnerability issues. The measure is stored in minutes in the DB. An 8-hour day is assumed when values are shown in days"
+        },
+        {
+            "key": "security_hotspots",
+            "description": "The number of Security Hotspots"
+        },
+        {
+            "key": "security_hotspots_reviewed",
+            "description": "The percentage of reviewed security hotspots. Ratio formula: Number of Reviewed Hotspots x 100 / (To_Review Hotspots + Reviewed Hotspots)"
+        },
+        {
+            "key": "security_review_rating",
+            "description": "The security review rating is a letter grade based on the percentage of Reviewed Security Hotspots. Note that security hotspots are considered reviewed if they are marked as Acknowledged, Fixed or Safe. A = >= 80%.B = >= 70% and <80%.C = >= 50% and <70%.D = >= 30% and <50%.E = < 30%"
+        }
+    ]
+}

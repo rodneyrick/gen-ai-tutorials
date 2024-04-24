@@ -1,7 +1,0 @@
-[tools]
-    Namespace="Tools"
-    Name="Git"
-    updated=2024-04-11T22:42:00Z
-
-[tools.git]
-MAX_COMMITS = "100"

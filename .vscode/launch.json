@@ -5,28 +5,21 @@
             "type": "debugpy",
             "request": "launch",
             "module": "repo_metrics",
-            "cwd": "${workspaceFolder}/app/app",
+            "cwd": "${workspaceFolder}/cookbook",
         },
         {
             "name": "repo_changelog",
             "type": "debugpy",
             "request": "launch",
             "module": "repo_changelog",
-            "cwd": "${workspaceFolder}/app/app",
+            "cwd": "${workspaceFolder}/cookbook",
         },
         {
-            "name": "config_params",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "config_params",
-            "cwd": "${workspaceFolder}/app/app/examples",
-        },
-        {
-            "name": "run_tool",
+            "name": "tools",
             "type": "debugpy",
             "request": "launch",
             "module": "tools",
-            "cwd": "${workspaceFolder}/app/app/examples",
+            "cwd": "${workspaceFolder}/cookbook",
         }
     ]
 }
