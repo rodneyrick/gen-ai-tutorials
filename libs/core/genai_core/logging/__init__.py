@@ -1,5 +1,6 @@
-from genai_core.logging.logging import logging
+from genai_core.logging.logging import logging, write_log
 
 __all__ = [
-    "logging"
+    "logging",
+    "write_log"
 ]
