@@ -18,15 +18,16 @@ class TaskChangelog:
         self.prompts = []
     
     @instrumented_trace()
-    def _run(self):
-        self.commits = self.tools_repos.run(tool_input={
+    async def _run(self):
+        self.commits = await self.tools_repos.arun(tool_input={
             "project_name": self.project_name, 
             "url": self.url_repo, 
             "function": 'git_commits_range_id', 
             "range_commit": self.range_commit
         })
-        self.add_prompts()
-        self.create_chat()
+        print(f"---> Finish: {self.url_repo}")
+        # self.add_prompts()
+        # self.create_chat()
 
     @instrumented_trace(span_name="Add Prompts Template")
     def add_prompts(self):
