@@ -28,29 +28,20 @@ class ToolChatLLM(BaseTool):
     return_direct: bool = True
 
     @instrumented_trace()
-    def _run(self, model: str, api_key: str, api_base: str, prompt: list, 
+    def _run(self) -> str:
+        """Use the tool."""
+        raise NotImplementedError("custom_search does not support async")
+                
+    async def _arun(self, model: str, api_key: str, api_base: str, prompt: list, 
              langfuse_secret_key: Optional[str] = None,
              langfuse_public_key: Optional[str] = None, temperature: Optional[str] = 0.3, 
              streaming: Optional[bool] = False) -> str:
-        """Use the tool."""
-        try:
-            # if langfuse_secret_key is not None:
-            #     return self.chat_langfuse(model=model, api_base=api_base, api_key=api_key,
-            #                               prompt=prompt, temperature=temperature, streaming=streaming, 
-            #                               langfuse_public_key=langfuse_public_key,
-            #                               langfuse_secret_key=langfuse_secret_key)
-            
-            chat = self.chat(api_base=api_base, api_key=api_key, model=model, temperature=temperature, 
-                             streaming=streaming)
-            return chat.invoke(input=prompt, config={"callbacks": [ToollCallbackHanlder()]})
-                
-        except Exception as e:
-            logger.error(e)
-            raise ValueError(e)
-
-    async def _arun(self) -> str:
         """Use the tool asynchronously."""
-        raise NotImplementedError("custom_search does not support async")
+        
+        chat = self.chat(api_base=api_base, api_key=api_key, model=model, temperature=temperature, 
+                             streaming=streaming)
+        
+        return chat.invoke(input=prompt, config={"callbacks": [ToollCallbackHanlder()]})
 
     @instrumented_trace(span_name="Creating Chat")
     def chat(self, api_base: str, api_key: str, model: str, temperature: str, streaming: bool):

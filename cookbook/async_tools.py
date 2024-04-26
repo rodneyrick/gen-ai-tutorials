@@ -1,11 +1,13 @@
-from genai.tools import ToolGit
+from genai.tools import ToolGit, ToolSonarScanner
 from genai.utils.commands import exec_commands
 from asyncio import run, sleep, create_task, gather
 from genai.tools.tools_configs import GitConfigurations
 from genai.tasks import TaskChangelog
-
+import os
+from dotenv import load_dotenv
 from genai_core.logging import logging
 
+load_dotenv()
 logger = logging.getLogger()
 
 async def tool_git_clone():
@@ -49,4 +51,11 @@ async def task_changelog():
     
     await gather(task1, task2, task3)
 
-run(task_changelog())
+async def tool_sonar_scanner():
+    task1 = create_task(ToolSonarScanner().arun(tool_input={"project_name":"aws-harmony",
+                                                            "token": os.environ['SONAR_TOKEN'], 
+                                                            "url": os.environ['SONAR_HOST']}))
+
+    await gather(task1)
+    
+run(tool_sonar_scanner())

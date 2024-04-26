@@ -25,12 +25,13 @@ class TaskChangelog:
             "function": 'git_commits_range_id', 
             "range_commit": self.range_commit
         })
+        self.add_prompts()
         print(f"---> Finish: {self.url_repo}")
-        # self.add_prompts()
-        # self.create_chat()
+        #self.create_chat()
 
     @instrumented_trace(span_name="Add Prompts Template")
     def add_prompts(self):
+        logger.debug("Iniciando Prompt")
         self.prompts = create_prompt_list([
             {
                 "role": "system", 
