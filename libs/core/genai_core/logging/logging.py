@@ -10,6 +10,9 @@ logging.getLogger('httpcore.connection').setLevel(logging.INFO)
 logging.getLogger('httpx').setLevel(logging.INFO)
 logging.getLogger('openai._base_client').setLevel(logging.INFO)
 logging.getLogger('langsmith.client').setLevel(logging.INFO)
+logging.getLogger('httpx').setLevel(logging.WARNING)
+
+
 
 class LogsConfigurations():
     LOG_PATH = "/var/tmp/genai/logs"
