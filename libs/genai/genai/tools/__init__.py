@@ -3,6 +3,9 @@ from genai.tools.tools_configs import SonarConfigurations, GitConfigurations, So
 
 if not os.path.exists(GitConfigurations.REPOS_PATH):
     os.makedirs(GitConfigurations.REPOS_PATH)
+    
+if not os.path.exists(SonarConfigurations.SONAR_DIR):
+    os.makedirs(SonarConfigurations.SONAR_DIR)
 
 from genai.tools.tools_sonar_scanner import ToolSonarScanner
 from genai.tools.tools_sonar_analysis import ToolSonarAnalysis

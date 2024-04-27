@@ -1,7 +1,7 @@
-from genai.tools import ToolGit, ToolSonarScanner
+from genai.tools import ToolGit, ToolSonarScanner, ToolSonarAnalysis
 from genai.utils.commands import exec_commands
 from asyncio import run, sleep, create_task, gather
-from genai.tools.tools_configs import GitConfigurations
+from genai.tools.tools_configs import GitConfigurations, SonarDomains
 from genai.tasks import TaskChangelog
 import os
 from dotenv import load_dotenv
@@ -55,7 +55,22 @@ async def tool_sonar_scanner():
     task1 = create_task(ToolSonarScanner().arun(tool_input={"project_name":"aws-harmony",
                                                             "token": os.environ['SONAR_TOKEN'], 
                                                             "url": os.environ['SONAR_HOST']}))
+    task2 = create_task(ToolSonarScanner().arun(tool_input={"project_name":"fastapi-lib-observability",
+                                                            "token": os.environ['SONAR_TOKEN'], 
+                                                            "url": os.environ['SONAR_HOST']}))
 
-    await gather(task1)
-    
-run(tool_sonar_scanner())
+    await gather(task1, task2)
+
+async def tool_sonar_analysis():
+    task1 = create_task(ToolSonarAnalysis().arun(tool_input={"project_name": "aws-harmony",
+                                                             "token":  os.environ['SONAR_TOKEN'],
+                                                             "url": os.environ['SONAR_HOST'],
+                                                             "domain": SonarDomains.SONAR_DOMAIN_ISSUES}))
+    task2 = create_task(ToolSonarAnalysis().arun(tool_input={"project_name": "fastapi-lib-observability",
+                                                             "token":  os.environ['SONAR_TOKEN'],
+                                                             "url": os.environ['SONAR_HOST'],
+                                                             "domain": SonarDomains.SONAR_DOMAIN_COMPLEXITY}))
+
+    await gather(task1, task2)
+        
+run(tool_sonar_analysis())
