@@ -2,13 +2,12 @@ from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import BaseTool
 from typing import Type
 from enum import Enum
-import requests
 import json
 
-from genai_core.telemetry import instrumented_trace, TraceInstruments
-from genai_core.logging import logging
-from genai_core.requests.requests import HttpClient
 from genai.tools.tools_configs import SonarConfigurations, SonarDomains
+from genai_core.telemetry import instrumented_trace, TraceInstruments
+from genai_core.requests import HttpClient
+from genai_core.logging import logging
 
 logger = logging.getLogger()
 

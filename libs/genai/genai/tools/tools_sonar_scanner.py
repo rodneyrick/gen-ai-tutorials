@@ -1,16 +1,16 @@
 from langchain.pydantic_v1 import BaseModel, Field
 from langchain.tools import BaseTool
 from typing import Type
-import requests
-import time
-import os
 import asyncio
+import os
 
-from genai_core.telemetry import instrumented_trace, TraceInstruments
-from genai_core.logging import logging
+
 from genai.tools.tools_configs import GitConfigurations, SonarConfigurations
-from genai.utils.commands import exec_command, exec_commands
-from genai_core.requests.requests import HttpClient
+from genai_core.telemetry import instrumented_trace, TraceInstruments
+from genai_core.requests import HttpClient
+from genai_core.shell import ShellClient
+from genai_core.logging import logging
+
 
 logger = logging.getLogger()
 
@@ -25,6 +25,7 @@ class ToolSonarScanner(BaseTool):
     args_schema: Type[BaseModel] = SonarScannerInput
     return_direct: bool = True
     http_client: HttpClient = None
+    shell_client: ShellClient = None
 
     def _run(self) -> str:
         """Use the tool."""
@@ -34,6 +35,7 @@ class ToolSonarScanner(BaseTool):
     async def _arun(self, url: str, project_name: str, token: str) -> str:
         """Use the tool asynchronously."""
         self.http_client = HttpClient.get_instance()
+        self.shell_client = ShellClient.get_instance()
         
         if not await self.check_sonar_project(url=url, project_name=project_name, token=token):
             await self.create_sonar_project(url=url, project_name=project_name, token=token)
@@ -99,8 +101,8 @@ class ToolSonarScanner(BaseTool):
     @instrumented_trace(span_name="Install Sonar Scanner", kind=TraceInstruments.SPAN_KIND_CLIENT)
     async def install_sonar_scanner(self):
         logging.info('Não foi encontrada uma instalação do sonar-scanner. Iniciando processo de download')
-        await exec_commands(comando=['curl', SonarConfigurations.SONAR_SCANNER_DOWNLOAD, '--output', f'{SonarConfigurations.SONAR_DIR}/{SonarConfigurations.SONAR_SCANNER_VERSION}.zip'], log_name="download_sonar_scanner.log")
-        await exec_commands(comando=['unzip', '-o', f'{SonarConfigurations.SONAR_DIR}/{SonarConfigurations.SONAR_SCANNER_VERSION}.zip', '-d', SonarConfigurations.SONAR_DIR], log_name="unzip_sonar_scanner.log")
+        await self.shell_client.exec(comando=['curl', SonarConfigurations.SONAR_SCANNER_DOWNLOAD, '--output', f'{SonarConfigurations.SONAR_DIR}/{SonarConfigurations.SONAR_SCANNER_VERSION}.zip'], log_name="download_sonar_scanner.log")
+        await self.shell_client.exec(comando=['unzip', '-o', f'{SonarConfigurations.SONAR_DIR}/{SonarConfigurations.SONAR_SCANNER_VERSION}.zip', '-d', SonarConfigurations.SONAR_DIR], log_name="unzip_sonar_scanner.log")
         os.remove(f'{SonarConfigurations.SONAR_DIR}/{SonarConfigurations.SONAR_SCANNER_VERSION}.zip')
     
     @instrumented_trace(span_name="Sending Repo Sonarqube", kind=TraceInstruments.SPAN_KIND_CLIENT)
@@ -109,7 +111,7 @@ class ToolSonarScanner(BaseTool):
         if not os.path.exists(SonarConfigurations.SONAR_SCANNER_PATH):
             await self.install_sonar_scanner()
             
-        await exec_commands(comando=[f'{SonarConfigurations.SONAR_SCANNER_PATH}/bin/sonar-scanner'], log_name='exec_sonar_scanner.log', cwd=base_dir)
+        await self.shell_client.exec(comando=[f'{SonarConfigurations.SONAR_SCANNER_PATH}/bin/sonar-scanner'], log_name='exec_sonar_scanner.log', cwd=base_dir)
         await self.verify_analysis_ready(token=token, project_name=project_name, url=url)
 
     @instrumented_trace(span_name="Creating Sonar Properties", type=TraceInstruments.INSTRUMENTS_EVENT, 

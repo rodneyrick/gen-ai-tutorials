@@ -2,15 +2,12 @@ from langchain.pydantic_v1 import BaseModel, Field, validator
 from langchain.tools import BaseTool
 from typing import Optional, Type
 from enum import Enum
-import subprocess
 import os
-import time
 
 from genai_core.telemetry import instrumented_trace, TraceInstruments
-from genai_core.logging import logging 
 from genai.tools.tools_configs import GitConfigurations
-from genai.utils.commands import exec_command, exec_commands
-from asyncio import sleep
+from genai_core.shell import ShellClient
+from genai_core.logging import logging 
 
 logger = logging.getLogger()
 
@@ -38,8 +35,8 @@ class ToolGit(BaseTool):
     repo_path: str = ""
     url: str = ""
     range_commit: str = ""
+    shell_client: ShellClient = None
 
-    # @instrumented_trace()
     def _run(self) -> str:
         """Use the tool."""
         raise NotImplementedError("custom_search does not support sync")
@@ -47,11 +44,13 @@ class ToolGit(BaseTool):
     @instrumented_trace()
     async def _arun(self, url: str, project_name: str, function: GitFunctionalities, range_commit: Optional[str] = None) -> str:
         """Use the tool asynchronously."""
-            
+        
+        self.shell_client = ShellClient.get_instance()
         repo_path = f'{GitConfigurations.REPOS_PATH}/{project_name}'
         
-        if function == GitFunctionalities.GIT_CLONE.value:
-            result = await self.git_commits_range_id(repo_path=repo_path, url=url)
+        logger.debug(function)
+        if function == GitFunctionalities.GIT_CLONE:
+            result = await self.git_clone(repo_path=repo_path, url=url)
             return result
         
         result = await self.git_commits_range_id(repo_path=repo_path, url=url, range_commit=range_commit)
@@ -61,7 +60,7 @@ class ToolGit(BaseTool):
     async def git_clone(self, repo_path, url):
         logger.debug(f"Repo Clone: {url}")
         if not os.path.exists(repo_path):
-            await exec_commands(comando=['git', 'clone', url], log_name='clone_repo_git', 
+            await self.shell_client.exec(comando=['git', 'clone', url], log_name='clone_repo_git', 
                                 cwd=GitConfigurations.REPOS_PATH)
         return True
     
@@ -72,7 +71,7 @@ class ToolGit(BaseTool):
         logger.debug(f"Extract commits: {url}")
         comando = ['git', 'log', '--format=%B', '-n', str(GitConfigurations.MAX_COMMITS), range_commit]
 
-        commits = await exec_commands(comando=comando, log_name="commits_by_range", cwd=repo_path, return_stdout=True)
+        commits = await self.shell_client.exec(comando=comando, log_name="commits_by_range", cwd=repo_path, return_stdout=True)
         
         return self.format_commits(commits=commits)
         
