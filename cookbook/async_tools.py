@@ -2,31 +2,13 @@ from genai.tools import ToolGit, ToolSonarScanner, ToolSonarAnalysis
 from genai.utils.commands import exec_commands
 from asyncio import run, sleep, create_task, gather
 from genai.tools.tools_configs import GitConfigurations, SonarDomains
-from genai.tasks import TaskChangelog
+from genai.tasks import TaskChangelog, TaskSonarqube
 import os
 from dotenv import load_dotenv
 from genai_core.logging import logging
 
 load_dotenv()
 logger = logging.getLogger()
-
-async def tool_git_clone():
-    task1 = create_task(ToolGit().git_clone(repo_path=f'{GitConfigurations.REPOS_PATH}/fastapi-lib-observability', 
-                                            url="https://github.com/lucasBritoo/fastapi-lib-observability"))
-    task2 = create_task(ToolGit().git_clone(repo_path=f'{GitConfigurations.REPOS_PATH}/aws-harmony', 
-                                            url="https://github.com/lucasBritoo/aws-harmony"))
-
-    await gather(task1, task2)
-
-async def tool_git_commit_by_range():
-    task1 = create_task(ToolGit().git_commits_range_id(repo_path=f'{GitConfigurations.REPOS_PATH}/rdpy-observability', 
-                                            url="https://github.com/lucasBritoo/rdpy-observability",
-                                            range_commit="f2481149d9585dd956541cef1881be7f9ab81dbd..cef16a9f64d836a3221a344ca7d571644280d829"))
-    task2 = create_task(ToolGit().git_commits_range_id(repo_path=f'{GitConfigurations.REPOS_PATH}/rdpy-observability', 
-                                            url="https://github.com/lucasBritoo/rdpy-observability",
-                                            range_commit="f2481149d9585dd956541cef1881be7f9ab81dbd..cef16a9f64d836a3221a344ca7d571644280d829"))
-
-    results = await gather(task1, task2)
 
 async def task_changelog():
     changelog1 = TaskChangelog(tools_repos=ToolGit(),
@@ -51,26 +33,38 @@ async def task_changelog():
     
     await gather(task1, task2, task3)
 
-async def tool_sonar_scanner():
-    task1 = create_task(ToolSonarScanner().arun(tool_input={"project_name":"aws-harmony",
-                                                            "token": os.environ['SONAR_TOKEN'], 
-                                                            "url": os.environ['SONAR_HOST']}))
-    task2 = create_task(ToolSonarScanner().arun(tool_input={"project_name":"fastapi-lib-observability",
-                                                            "token": os.environ['SONAR_TOKEN'], 
-                                                            "url": os.environ['SONAR_HOST']}))
+async def task_metrics():
+    sonarqube1 = TaskSonarqube(tools_repos=ToolGit(),
+                               tools_analysis=ToolSonarAnalysis(),
+                               tools_scanners=ToolSonarScanner(),
+                               project_name="rdpy-observability",
+                               url_repo="https://github.com/lucasBritoo/rdpy-observability",
+                               sonar_token=os.environ['SONAR_TOKEN'],
+                               sonar_url="http://192.168.3.241/sonarqube",
+                               metric_list=[SonarDomains.SONAR_DOMAIN_COMPLEXITY])
+    
+    sonarqube2 = TaskSonarqube(tools_repos=ToolGit(),
+                               tools_analysis=ToolSonarAnalysis(),
+                               tools_scanners=ToolSonarScanner(),
+                               project_name="aws-harmony",
+                               url_repo="https://github.com/lucasBritoo/aws-harmony",
+                               sonar_token=os.environ['SONAR_TOKEN'],
+                               sonar_url="http://192.168.3.241/sonarqube",
+                               metric_list=[SonarDomains.SONAR_DOMAIN_ISSUES])
+    
+    sonarqube3 = TaskSonarqube(tools_repos=ToolGit(),
+                               tools_analysis=ToolSonarAnalysis(),
+                               tools_scanners=ToolSonarScanner(),
+                               project_name="fastapi-lib-observability",
+                               url_repo="https://github.com/lucasBritoo/fastapi-lib-observability",
+                               sonar_token=os.environ['SONAR_TOKEN'],
+                               sonar_url="http://192.168.3.241/sonarqube",
+                               metric_list=[SonarDomains.SONAR_DOMAIN_SECURITY])
+    
+    task1 = create_task(sonarqube1._run())
+    task2 = create_task(sonarqube2._run())
+    task3 = create_task(sonarqube3._run())
+    
+    await gather(task1, task2, task3)
 
-    await gather(task1, task2)
-
-async def tool_sonar_analysis():
-    task1 = create_task(ToolSonarAnalysis().arun(tool_input={"project_name": "aws-harmony",
-                                                             "token":  os.environ['SONAR_TOKEN'],
-                                                             "url": os.environ['SONAR_HOST'],
-                                                             "domain": SonarDomains.SONAR_DOMAIN_ISSUES}))
-    task2 = create_task(ToolSonarAnalysis().arun(tool_input={"project_name": "fastapi-lib-observability",
-                                                             "token":  os.environ['SONAR_TOKEN'],
-                                                             "url": os.environ['SONAR_HOST'],
-                                                             "domain": SonarDomains.SONAR_DOMAIN_COMPLEXITY}))
-
-    await gather(task1, task2)
-        
-run(tool_sonar_analysis())
+run(task_metrics())

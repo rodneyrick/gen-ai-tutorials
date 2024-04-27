@@ -1,6 +1,7 @@
 from langchain_core.callbacks import BaseCallbackHandler
 from textwrap import dedent
 from typing import List
+import asyncio
 import json
 import os
 
@@ -30,24 +31,26 @@ class TaskSonarqube:
         self.callbacks = callbacks
 
     @instrumented_trace()
-    def _run(self):
-        self.tools_repos.run(tool_input={"project_name": self.project_name, "url": self.url_repo,
-                                         "function": 'git_clone'},
-                             callbacks=self.callbacks)
+    async def _run(self):
+        await self.tools_repos.arun(tool_input={"project_name": self.project_name,
+                                                "url": self.url_repo,
+                                                "function": 'git_clone'})
 
-        self.tools_scanners.run(tool_input={"project_name": self.project_name, "token": self.sonar_token, 
-                                          "url": self.sonar_url},
-                                callbacks=self.callbacks)
+        await self.tools_scanners.arun(tool_input={"project_name": self.project_name,
+                                            "token": self.sonar_token, 
+                                            "url": self.sonar_url})
         
         for domain in self.metrics_list:
             
             logger.info(f"Selecting domain=`{domain}`")
-            self.analysis = self.tools_analysis.run(tool_input={"project_name": self.project_name, "token": self.sonar_token,
-                                                "url": self.sonar_url, "domain": domain},
-                                                    callbacks=self.callbacks)
+            self.analysis = await self.tools_analysis.arun(tool_input={"project_name": self.project_name,
+                                                                       "token": self.sonar_token,
+                                                                       "url": self.sonar_url,
+                                                                       "domain": domain})
             
             json_data = self.get_info_from_json_file(domain.value)
             self.domain_name, self.domain_description = self.get_domain(json_data)
+            await asyncio.sleep(0)
             metrics_description = self.extract_keys_and_descriptions(json_data)
             metrics_results = self.analysis
             
@@ -66,7 +69,7 @@ class TaskSonarqube:
                 metrics_description=metrics_description, 
                 metrics_results=metrics_results
             )
-            self._create_chat()
+            # self._create_chat()
 
     @instrumented_trace(span_name="Add Prompts Template")
     def add_prompts(self, domain_name, domain_description, metrics_description, metrics_results):
