@@ -16,7 +16,8 @@ logger = logging.getLogger()
 
 attributes_black_list: List[str] = [
     'data',
-    'token'
+    'token',
+    'api_key'
 ]
 
 class TraceInstruments():
