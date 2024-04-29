@@ -13,7 +13,7 @@ class BaseTool(ABC):
     args_schema: Optional[Type[BaseModel]] = None
     
     @abstractmethod
-    def _run(self, **kwargs: Any) -> Any:
+    async def _run(self, **kwargs: Any) -> Any:
         pass
     
     def _parse_input(self, tool_input: Union[str, Dict]) -> Union[str, Dict[str, Any]]:
@@ -35,12 +35,11 @@ class BaseTool(ABC):
                 }
         return tool_input
     
-    def run(self, tool_input: Union[str, Dict[str, Any]], 
+    async def run(self, tool_input: Union[str, Dict[str, Any]], 
             tags: Optional[List[str]] = None) -> Any:
         try:
             tool_kwargs = self._parse_input(tool_input)
-            logger.debug(f"Tags: {tags}")
-            self._run(**tool_kwargs)
+            return await self._run(**tool_kwargs)
         except TypeError as e:
             logger.error(f"Tool input type error: {e}")
         except ValidationError as e:
