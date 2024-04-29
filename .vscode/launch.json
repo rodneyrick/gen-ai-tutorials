@@ -20,6 +20,14 @@
             "request": "launch",
             "module": "tools",
             "cwd": "${workspaceFolder}/cookbook",
+        },
+        {
+            "name": "chat",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "streamlit",
+            "args": ["run", "main.py"],
+            "cwd": "${workspaceFolder}/app/chat",
         }
     ]
 }

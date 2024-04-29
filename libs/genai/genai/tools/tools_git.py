@@ -1,14 +1,13 @@
-from langchain.pydantic_v1 import BaseModel, Field, validator
-from langchain.tools import BaseTool
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Type
 from enum import Enum
-import subprocess
 import os
 
 from genai_core.telemetry import instrumented_trace, TraceInstruments
-from genai_core.logging import logging 
 from genai.tools.tools_configs import GitConfigurations
-from genai.utils.commands import exec_command
+from genai_core.shell import ShellClient
+from genai_core.logging import logging
+from genai_core.tools import BaseTool
 
 logger = logging.getLogger()
 
@@ -19,73 +18,59 @@ class GitFunctionalities(Enum):
 class GitInput(BaseModel):
     project_name: str = Field(description="Repository Name")
     url: str = Field(description="URL to Git Repository")
+    range_commit: Optional[str] = Field(description="Range Commit ID. Ex: 00000..1111", default=None)
     function: GitFunctionalities = Field(description="Function to execution tool")
-    range_commit: Optional[str] = Field(description="Range Commit ID. Ex: 00000..1111")
     
-    @validator("range_commit", always=True)
-    def check_range_commit(cls, v, values):
-        if values.get("function") == GitFunctionalities.GIT_COMMITS_RANGE_ID and v is None:
-            raise ValueError("range_commit é obrigatório quando o parâmetro function é definido como git_commits_range_id")
-        return v
+    @field_validator("function")
+    def validate_range_commit(cls, value, info):
+        range_commit = info.data.get("range_commit")
+
+        if value == GitFunctionalities.GIT_COMMITS_RANGE_ID and range_commit is None:
+            raise ValueError("`range_commit` é obrigatório para GIT_COMMITS_RANGE_ID")
+
+        return value
       
 class ToolGit(BaseTool):
     name = "git"
     description = "useful for when you need to interact git repositories"
     args_schema: Type[BaseModel] = GitInput
-    return_direct: bool = True
-    repo_path: str = ""
-    url: str = ""
-    range_commit: str = ""
+    shell_client = ShellClient.get_instance()
 
     @instrumented_trace()
-    def _run(self, url: str, project_name: str, function: GitFunctionalities, range_commit: Optional[str] = None) -> str:
-        """Use the tool."""
-        try:
-            repo_path = f'{GitConfigurations.REPOS_PATH}/{project_name}'
-
-            method = getattr(self, function.value, None)
-            
-            if not method:
-                raise Exception(f'Metodo nao encontrado: {function}')
-            
-            if range_commit is not None:
-                return method(repo_path=repo_path, url=url, range_commit=range_commit)
-            
-            return method(repo_path=repo_path, url=url)
-                
-        except Exception as e:
-            logger.error(e)
-            raise ValueError(e)
-
-    async def _arun(self) -> str:
-        """Use the tool asynchronously."""
-        raise NotImplementedError("custom_search does not support async")
-
+    async def _run(self, url: str, project_name: str, function: GitFunctionalities, range_commit: Optional[str] = None) -> str:
+        repo_path = f'{GitConfigurations.REPOS_PATH}/{project_name}'
+        
+        if function == GitFunctionalities.GIT_CLONE:
+            result = await self.git_clone(repo_path=repo_path, url=url)
+            return result
+        
+        result = await self.git_commits_range_id(repo_path=repo_path, url=url, range_commit=range_commit)
+        return result
+        
     @instrumented_trace(span_name="Git Clone", kind=TraceInstruments.SPAN_KIND_CLIENT)
-    def git_clone(self, repo_path, url):
-        
-        if not os.path.exists(GitConfigurations.REPOS_PATH):
-            os.makedirs(GitConfigurations.REPOS_PATH)
-        
+    async def git_clone(self, repo_path, url):
+        logger.debug(f"Repo Clone: {url}")
         if not os.path.exists(repo_path):
-            exec_command(comando=['git', 'clone', url], log_path='clone_repo_git.log', cwd=GitConfigurations.REPOS_PATH)
-        
-        logging.debug('O clone do repositorio git foi executado com sucesso')
+            await self.shell_client.exec(comando=['git', 'clone', url], log_name='clone_repo_git', 
+                                cwd=GitConfigurations.REPOS_PATH)
         return True
     
     @instrumented_trace(span_name="Git Commits by Range", kind=TraceInstruments.SPAN_KIND_CLIENT)
-    def git_commits_range_id(self, repo_path, range_commit, url):
-
-        self.git_clone(repo_path=repo_path, url=url)
+    async def git_commits_range_id(self, repo_path, range_commit, url):
+        await self.git_clone(repo_path=repo_path, url=url)
         
+        logger.debug(f"Extract commits: {url}")
         comando = ['git', 'log', '--format=%B', '-n', str(GitConfigurations.MAX_COMMITS), range_commit]
 
-        with subprocess.Popen(comando, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=repo_path) as processo:
-            commits, _ = processo.communicate()
-
+        commits = await self.shell_client.exec(comando=comando, log_name="commits_by_range", cwd=repo_path, return_stdout=True)
+        
+        return self.format_commits(commits=commits)
+        
+    @instrumented_trace(span_name="Format Commits", type=TraceInstruments.INSTRUMENTS_EVENT, span_parameters=False)
+    def format_commits(self, commits):
+        
         linhas = commits.decode('utf-8').splitlines()
         linhas_limpa = filter(lambda linha: linha.strip() and not linha.startswith("Merge"), linhas)
         saida_str = '\n'.join(linhas_limpa)
-
+        
         return saida_str
-
