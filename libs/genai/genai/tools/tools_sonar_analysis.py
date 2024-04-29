@@ -1,5 +1,4 @@
-from langchain.pydantic_v1 import BaseModel, Field
-from langchain.tools import BaseTool
+from pydantic import BaseModel, Field
 from typing import Type
 from enum import Enum
 import json
@@ -8,6 +7,7 @@ from genai.tools.tools_configs import SonarConfigurations, SonarDomains
 from genai_core.telemetry import instrumented_trace, TraceInstruments
 from genai_core.requests import HttpClient
 from genai_core.logging import logging
+from genai_core.tools import BaseTool
 
 logger = logging.getLogger()
 
@@ -21,17 +21,14 @@ class ToolSonarAnalysis(BaseTool):
     name = "sonar_analyzis"
     description = "useful for when you need to colect applications metrics in the sonarqube"
     args_schema: Type[BaseModel] = SonarAnalysisInput
-    http_client: HttpClient = None
+    http_client = HttpClient.get_instance()
 
     @instrumented_trace()
-    def _run(self) -> str:
-        raise NotImplementedError("custom_search does not support sync")
-    
-    async def _arun(self, domain: Enum, url: str, project_name: str, token: str) -> str:
-        self.http_client = HttpClient.get_instance()
+    async def _run(self, domain: Enum, url: str, project_name: str, token: str) -> str:
         
         metrics = await self.analyze_metrics(domain=domain, project_name=project_name, url=url, token=token)
-        return self.format_result(metrics)
+        result = self.format_result(metrics)
+        return result
 
     @instrumented_trace(span_name="Analyis Metrics")
     async def analyze_metrics(self, domain: SonarDomains, project_name: str, token: str, url: str):
@@ -68,4 +65,5 @@ class ToolSonarAnalysis(BaseTool):
 
     @instrumented_trace(span_name="Format Result", type=TraceInstruments.INSTRUMENTS_EVENT, span_parameters=False)
     def format_result(self, metrics):
-        return "\n".join([f"- {metric}" for metric in metrics])
+        result =  "\n".join([f"- {metric}" for metric in metrics])
+        return result

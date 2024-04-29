@@ -1,5 +1,4 @@
-from langchain.pydantic_v1 import BaseModel, Field
-from langchain.tools import BaseTool
+from pydantic import BaseModel, Field
 from typing import Type
 import asyncio
 import os
@@ -10,6 +9,7 @@ from genai_core.telemetry import instrumented_trace, TraceInstruments
 from genai_core.requests import HttpClient
 from genai_core.shell import ShellClient
 from genai_core.logging import logging
+from genai_core.tools import BaseTool
 
 
 logger = logging.getLogger()
@@ -23,20 +23,12 @@ class ToolSonarScanner(BaseTool):
     name = "sonar_scanner"
     description = "useful for when you need to scanner applications to sonarqube"
     args_schema: Type[BaseModel] = SonarScannerInput
-    return_direct: bool = True
-    http_client: HttpClient = None
-    shell_client: ShellClient = None
-
-    def _run(self) -> str:
-        """Use the tool."""
-        raise NotImplementedError("custom_search does not support async")
+    http_client = HttpClient.get_instance()
+    shell_client = ShellClient.get_instance()
 
     @instrumented_trace()
-    async def _arun(self, url: str, project_name: str, token: str) -> str:
-        """Use the tool asynchronously."""
-        self.http_client = HttpClient.get_instance()
-        self.shell_client = ShellClient.get_instance()
-        
+    async def _run(self, url: str, project_name: str, token: str) -> str:
+
         if not await self.check_sonar_project(url=url, project_name=project_name, token=token):
             await self.create_sonar_project(url=url, project_name=project_name, token=token)
         
