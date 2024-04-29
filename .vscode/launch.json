@@ -22,13 +22,6 @@
             "cwd": "${workspaceFolder}/cookbook",
         },
         {
-            "name": "async_tools",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "async_tools",
-            "cwd": "${workspaceFolder}/cookbook",
-        },
-        {
             "name": "chat",
             "type": "debugpy",
             "request": "launch",
