@@ -10,7 +10,7 @@ from genai_core.telemetry import instrumented_trace, TraceInstruments
 from genai_core.prompts import create_prompt_list
 from genai_core.logging import logging
 from genai.tools import SonarConfigurations, SonarDomains
-from genai.tools import ToolChatLLM
+from genai.tools import ToolChatLLM, GitFunctionalities
 
 logger = logging.getLogger()
 
@@ -32,43 +32,43 @@ class TaskSonarqube:
 
     @instrumented_trace()
     async def _run(self):
-        await self.tools_repos.arun(tool_input={"project_name": self.project_name,
-                                                "url": self.url_repo,
-                                                "function": 'git_clone'})
+        # await self.tools_repos.run(tool_input={"project_name": self.project_name,
+        #                                         "url": self.url_repo,
+        #                                         "function": GitFunctionalities.GIT_CLONE})
 
-        await self.tools_scanners.arun(tool_input={"project_name": self.project_name,
-                                            "token": self.sonar_token, 
-                                            "url": self.sonar_url})
+        # await self.tools_scanners.run(tool_input={"project_name": self.project_name,
+        #                                     "token": self.sonar_token, 
+        #                                     "url": self.sonar_url})
         
         for domain in self.metrics_list:
             
             logger.info(f"Selecting domain=`{domain}`")
-            self.analysis = await self.tools_analysis.arun(tool_input={"project_name": self.project_name,
-                                                                       "token": self.sonar_token,
-                                                                       "url": self.sonar_url,
-                                                                       "domain": domain})
+            analysis = await self.tools_analysis.run(tool_input={"project_name": self.project_name,
+                                                                 "token": self.sonar_token,
+                                                                 "url": self.sonar_url,
+                                                                 "domain": domain})
+            logger.debug(analysis)
+            # json_data = self.get_info_from_json_file(domain.value)
+            # self.domain_name, self.domain_description = self.get_domain(json_data)
+            # await asyncio.sleep(0)
+            # metrics_description = self.extract_keys_and_descriptions(json_data)
+            # metrics_results = self.analysis
             
-            json_data = self.get_info_from_json_file(domain.value)
-            self.domain_name, self.domain_description = self.get_domain(json_data)
-            await asyncio.sleep(0)
-            metrics_description = self.extract_keys_and_descriptions(json_data)
-            metrics_results = self.analysis
-            
-            logger.info("Iniciando chat")
-            logger.debug(dedent(f"""
-                Domain: {self.domain_name}
-                Description: {self.domain_description}
-                Metrics Description: 
-                {metrics_description}
-                Metrics: 
-                {metrics_results}
-            """))
-            self.add_prompts(
-                self.domain_name, 
-                self.domain_description,
-                metrics_description=metrics_description, 
-                metrics_results=metrics_results
-            )
+            # logger.info("Iniciando chat")
+            # logger.debug(dedent(f"""
+            #     Domain: {self.domain_name}
+            #     Description: {self.domain_description}
+            #     Metrics Description: 
+            #     {metrics_description}
+            #     Metrics: 
+            #     {metrics_results}
+            # """))
+            # self.add_prompts(
+            #     self.domain_name, 
+            #     self.domain_description,
+            #     metrics_description=metrics_description, 
+            #     metrics_results=metrics_results
+            # )
             # self._create_chat()
 
     @instrumented_trace(span_name="Add Prompts Template")

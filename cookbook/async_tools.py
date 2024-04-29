@@ -1,11 +1,10 @@
 from genai.tools import ToolGit, ToolSonarScanner, ToolSonarAnalysis
-from genai.utils.commands import exec_commands
-from asyncio import run, sleep, create_task, gather
-from genai.tools.tools_configs import GitConfigurations, SonarDomains
 from genai.tasks import TaskChangelog, TaskSonarqube
-import os
-from dotenv import load_dotenv
+from asyncio import run, sleep, create_task, gather
+from genai.tools.tools_configs import SonarDomains
 from genai_core.logging import logging
+from dotenv import load_dotenv
+import os
 
 load_dotenv()
 logger = logging.getLogger()

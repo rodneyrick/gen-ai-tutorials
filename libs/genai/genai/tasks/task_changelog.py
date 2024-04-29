@@ -4,8 +4,7 @@ import os
 from genai_core.telemetry import instrumented_trace, TraceInstruments
 from genai_core.prompts import create_prompt_list
 from genai_core.logging import logging
-
-from genai.tools import ToolChatLLM
+from genai.tools import ToolChatLLM, GitFunctionalities
 
 logger = logging.getLogger()
 
@@ -19,14 +18,15 @@ class TaskChangelog:
     
     @instrumented_trace()
     async def _run(self):
-        self.commits = await self.tools_repos.arun(tool_input={
+        self.commits = await self.tools_repos.run(tool_input={
             "project_name": self.project_name, 
             "url": self.url_repo, 
-            "function": 'git_commits_range_id', 
+            "function": GitFunctionalities.GIT_COMMITS_RANGE_ID, 
             "range_commit": self.range_commit
         })
-        self.add_prompts()
+        # self.add_prompts()
         print(f"---> Finish: {self.url_repo}")
+        logger.debug(self.commits)
         #self.create_chat()
 
     @instrumented_trace(span_name="Add Prompts Template")
