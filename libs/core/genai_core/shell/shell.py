@@ -19,7 +19,7 @@ class ShellBaseInterface(ABC):
 
 class AsyncIoSubprocess(ShellBaseInterface):
 
-    #@instrumented_trace(span_name="Exec Command Bash", kind=TraceInstruments.SPAN_KIND_CLIENT)   
+    @instrumented_trace(span_name="Exec Command Bash", kind=TraceInstruments.SPAN_KIND_CLIENT)   
     async def exec(self, comando: list=[], log_name: str="log", cwd=None, return_stdout=False):
 
         process = await asyncio.create_subprocess_exec(
@@ -39,7 +39,7 @@ class AsyncIoSubprocess(ShellBaseInterface):
         
         return True
 
-    #@instrumented_trace(span_name="Write Log Error", span_parameters=False, type=TraceInstruments.INSTRUMENTS_EVENT)
+    @instrumented_trace(span_name="Write Log Error", span_parameters=False, type=TraceInstruments.INSTRUMENTS_EVENT)
     async def log(self, stderr, process, comando, log_name):
         now = datetime.now()
         timestamp= now.strftime("%Y%m%d-%H:%M:%S")
