@@ -1,4 +1,5 @@
-from langchain_core.callbacks import BaseCallbackHandler
+from pydantic import BaseModel, Field
+from typing import Optional, Any, List, Type
 from textwrap import dedent
 from typing import List
 import asyncio
@@ -9,71 +10,51 @@ import os
 from genai_core.telemetry import instrumented_trace, TraceInstruments
 from genai_core.prompts import create_prompt_list
 from genai_core.logging import logging
-from genai.tools import SonarConfigurations, SonarDomains
+from genai_core.tools import BaseTool
+from genai.tools import SonarConfigurations, SonarDomains, ToolSonarAnalysis
 from genai.tools import ToolChatLLM, GitFunctionalities
 
 logger = logging.getLogger()
 
-class TaskSonarqube:
+class TaskInput(BaseModel):
+    project_name: str = Field(description="Repository Name")
+    domains: List[SonarDomains] = Field(description="List Sonar Domains")
+
+class TaskSonarqube(BaseTool):
+    name = "Task Sonarqube Metrics"
+    description = "useful for when you need to generate sonarqube metrics in specify repositories"
+    args_schema: Type[BaseModel] = TaskInput
+    url = os.environ['SONAR_HOST']
+    token = os.environ['SONAR_TOKEN']
+    tool_sonar_analysis = ToolSonarAnalysis()
     
-    def __init__(self, tools_repos, tools_analysis, tools_scanners, 
-                 project_name: str, url_repo: str, sonar_token: str, sonar_url: str,
-                 metric_list: List[SonarDomains] = [],
-                 callbacks: BaseCallbackHandler = None):
-        self.tools_repos = tools_repos
-        self.tools_analysis = tools_analysis
-        self.tools_scanners = tools_scanners
-        self.project_name = project_name
-        self.url_repo = url_repo
-        self.sonar_token = sonar_token
-        self.sonar_url = sonar_url
-        self.metrics_list = metric_list
-        self.callbacks = callbacks
-
     @instrumented_trace()
-    async def _run(self):
-        # await self.tools_repos.run(tool_input={"project_name": self.project_name,
-        #                                         "url": self.url_repo,
-        #                                         "function": GitFunctionalities.GIT_CLONE})
-
-        # await self.tools_scanners.run(tool_input={"project_name": self.project_name,
-        #                                     "token": self.sonar_token, 
-        #                                     "url": self.sonar_url})
-        
-        for domain in self.metrics_list:
+    async def _run(self, project_name, domains):
+        for domain in domains:
             
             logger.info(f"Selecting domain=`{domain}`")
-            analysis = await self.tools_analysis.run(tool_input={"project_name": self.project_name,
-                                                                 "token": self.sonar_token,
-                                                                 "url": self.sonar_url,
+            analysis = await self.tool_sonar_analysis.run(tool_input={"project_name": project_name,
+                                                                 "token": self.token,
+                                                                 "url": self.url,
                                                                  "domain": domain})
             logger.debug(analysis)
-            # json_data = self.get_info_from_json_file(domain.value)
-            # self.domain_name, self.domain_description = self.get_domain(json_data)
-            # await asyncio.sleep(0)
-            # metrics_description = self.extract_keys_and_descriptions(json_data)
-            # metrics_results = self.analysis
+            json_data = self.get_info_from_json_file(domain.value)
+            self.domain_name, self.domain_description = self.get_domain(json_data)
+            await asyncio.sleep(0)
+            metrics_description = self.extract_keys_and_descriptions(json_data)
+            metrics_results = analysis
             
-            # logger.info("Iniciando chat")
-            # logger.debug(dedent(f"""
-            #     Domain: {self.domain_name}
-            #     Description: {self.domain_description}
-            #     Metrics Description: 
-            #     {metrics_description}
-            #     Metrics: 
-            #     {metrics_results}
-            # """))
-            # self.add_prompts(
-            #     self.domain_name, 
-            #     self.domain_description,
-            #     metrics_description=metrics_description, 
-            #     metrics_results=metrics_results
-            # )
-            # self._create_chat()
+            prompt = self.add_prompts(
+                self.domain_name, 
+                self.domain_description,
+                metrics_description=metrics_description, 
+                metrics_results=metrics_results
+            )
+            await self._create_chat(prompt)
 
     @instrumented_trace(span_name="Add Prompts Template")
     def add_prompts(self, domain_name, domain_description, metrics_description, metrics_results):
-        self.prompts = create_prompt_list([
+        prompt = create_prompt_list([
             {
                 "role": "system", 
                 "content": dedent("""
@@ -104,6 +85,8 @@ class TaskSonarqube:
                 }
             }
         ])
+        
+        return prompt
 
     @instrumented_trace(span_name="Load Domain Json", type=TraceInstruments.INSTRUMENTS_EVENT)
     def get_info_from_json_file(self, metric_json) -> dict:
@@ -126,15 +109,15 @@ class TaskSonarqube:
         logger.info("Reading DOMAIN and CONTEXT informations")
         return json_data['Domain'], json_data['Context']
 
-    @instrumented_trace(span_name="Creating Chat", kind=TraceInstruments.SPAN_KIND_CLIENT)
-    def _create_chat(self):
+    @instrumented_trace(span_name="Creating Chat", kind=TraceInstruments.SPAN_KIND_CLIENT, span_parameters=False)
+    async def _create_chat(self, prompt):
         logger.debug("Create chat")
 
-        chat = ToolChatLLM().run(tool_input={"model": os.environ['OPENAI_MODEL_NAME'], 
+        chat = await ToolChatLLM().run(tool_input={"model": os.environ['OPENAI_MODEL_NAME'], 
                                              "api_key": os.environ['OPENAI_API_KEY'],
                                              "api_base": os.environ['OPENAI_BASE_URL'],
-                                             "prompt": self.prompts,
+                                             "prompt": prompt,
                                              "streaming": False})
         
-        print(chat)
+        logger.debug(chat)
     
