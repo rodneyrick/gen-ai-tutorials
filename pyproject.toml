@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "gen-ai-tutorials"
+version = "0.0.1"
+description = "gen-ai-tutorials"
+authors = ["lucasBritoo <britol599@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+python-dotenv = "^1.0.1"
+
+[tool.poetry.group.dev.dependencies]
+genai-core = { path = "libs/core/", develop = true }
+genai = { path = "libs/genai/", develop = true }
+
+[tool.poetry.group.chat.dependencies]
+genai-core = { path = "libs/core/", develop = true }
+genai = { path = "libs/genai/", develop = true }
+streamlit = "^1.33.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

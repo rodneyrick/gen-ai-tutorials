@@ -1,0 +1,8 @@
+{
+    "extensions": [
+        "Gruntfuggly.todo-tree",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "mutantdino.resourcemonitor"
+    ]
+}

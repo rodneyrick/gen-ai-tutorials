@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ollama-pv
+  namespace: gen-ai
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  local:
+    path: /mnt/genai-ollama
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - k8s-node2-dev
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-pvc
+  namespace: gen-ai
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: gen-ai
+  labels:
+    app: ollama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      imagePullSecrets:
+        - name: docker-hub-tworpnet
+      nodeSelector:
+        kubernetes.io/hostname: k8s-node2-dev
+      containers:
+        - name: ollama
+          image: genai.ollama:0.1.32
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 11434   # API Ollama
+          resources:
+            limits:
+              cpu: "1"
+              memory:  2048Mi
+              ephemeral-storage: "50Gi"
+            requests:
+              cpu: "0.5"
+              memory:  500Mi
+          volumeMounts:
+            - name: ollama-data
+              mountPath: /root/.ollama
+        automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 1000
+      volumes:
+        - name: ollama-data
+          persistentVolumeClaim:
+            claimName: ollama-pvc
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-service
+  namespace: gen-ai
+spec:
+  selector:
+    app: ollama
+  ports:
+    - name: ollama
+      protocol: TCP
+      port: 11434
+      targetPort: 11434
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ollama-ingress
+  namespace: gen-ai
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "1200"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "1200"
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ollama-service
+            port:
+              number: 11434

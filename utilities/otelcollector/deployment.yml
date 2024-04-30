@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otelcollector
+  namespace: cpfl
+  labels:
+    app: otelcollector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otelcollector
+  template:
+    metadata:
+      labels:
+        app: otelcollector
+    spec:
+      imagePullSecrets:
+        - name: secret-dockerhub
+      containers:
+        - name: otelcollector
+          image: otelcollector:latest
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 8888   # Prometheus metrics exposed by the Collector
+          - containerPort: 8889   # Prometheus exporter metrics
+          - containerPort: 13133  # health_check extension (/health/status)
+          - containerPort: 4317   # otlp grpc 
+          - containerPort: 4318   # otlp http
+          resources:
+            limits:
+              cpu: "2"
+              memory:  1024Mi
+            requests:
+              cpu: "0.1"
+              memory:  100Mi
+        automountServiceAccountToken: false
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: otelcollector-service
+  namespace: cpfl
+spec:
+  selector:
+    app: otelcollector
+  ports:
+    - name: prometheus-metrics-collector
+      protocol: TCP
+      port: 8888
+      targetPort: 8888
+    - name: prometheus-metrics-exporter
+      protocol: TCP
+      port: 8889
+      targetPort: 8889
+    - name: health-check
+      protocol: TCP
+      port: 13133
+      targetPort: 13133
+    - name: otlp-grpc
+      protocol: TCP
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      protocol: TCP
+      port: 4318
+      targetPort: 4318
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: otelcollector-ingress
+  namespace: cpfl
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /otelcollector/prometheus-metrics-collector
+        pathType: Prefix
+        backend:
+          service:
+            name: otelcollector-service
+            port:
+              number: 8888
+      - path: /otelcollector/prometheus-metrics-exporter
+        pathType: Prefix
+        backend:
+          service:
+            name: otelcollector-service
+            port:
+              number: 8889
+      - path: /otelcollector/health-check
+        pathType: Prefix
+        backend:
+          service:
+            name: otelcollector-service
+            port:
+              number: 13133
+      - path: /otelcollector/otlp-grpc
+        pathType: Prefix
+        backend:
+          service:
+            name: otelcollector-service
+            port:
+              number: 4317
+      - path: /otelcollector/otlp-http
+        pathType: Prefix
+        backend:
+          service:
+            name: otelcollector-service
+            port:
+              number: 4318

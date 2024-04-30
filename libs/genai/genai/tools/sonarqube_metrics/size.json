@@ -1,0 +1,38 @@
+{
+    "Domain": "Size",
+    "Context": "The Size domain in source code metrics encompasses various measures related to the size and structure of the code. This includes counting classes, lines of code, directories, and files, as well as the density of comment lines in relation to the code. Additionally, metrics such as the number of functions and statements provide insights into the complexity and granularity of the code. These measures are crucial for evaluating the scalability, maintainability, and readability of the software, assisting in the development process and ensuring code quality over time",
+    "Metrics": [
+        {
+            "key": "classes",
+            "description": "The number of classes (including nested classes, interfaces, enums, and annotations)"
+        },
+        {
+            "key": "comment_lines",
+            "description": "The number of lines containing either comment or commented-out code."
+        },
+        {
+            "key": "comment_lines_density",
+            "description": "Comments balanced by ncloc + comment lines (%). The comment lines density = comment lines / (lines of code + comment lines) * 100"
+        },
+        {
+            "key": "files",
+            "description": "The number of files"
+        },
+        {
+            "key": "functions",
+            "description": "The number of functions. Depending on the language, a function is defined as either a function, a method, or a paragraph."
+        },
+        {
+            "key": "lines",
+            "description": "The number of physical lines (number of carriage returns)"
+        },
+        {
+            "key": "ncloc",
+            "description": "he number of physical lines that contain at least one character which is neither a whitespace nor a tabulation nor part of a comment."
+        },
+        {
+            "key": "ncloc_language_distribution",
+            "description": "The non-commented lines of code distributed by language"
+        }
+    ]
+}

@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  langfuse:
+    image: ghcr.io/langfuse/langfuse:latest
+    container_name: langfuse
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    networks:
+      - llm-net
+    depends_on:
+      - postgres
+    
+
+  postgres:
+    image: postgres
+    container_name: postgres
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - llm-net
+
+networks:
+  llm-net:
+    external: true
+
+volumes:
+  postgres_data:

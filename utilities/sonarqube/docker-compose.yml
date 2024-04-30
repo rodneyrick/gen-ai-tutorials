@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  sonarqube:
+    image: sonarqube
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    # environment:
+    #   - SONAR_WEB_CONTEXT=/sonar
+    networks:
+      - llm-net
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1.2G
+
+networks:
+  llm-net:
+    external: true
+
+volumes:
+  sonarqube_data:

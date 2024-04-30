@@ -1,0 +1,93 @@
+version: "3.4"
+
+services:
+
+  prometheus:
+    container_name: prometheus
+    build:
+      context: prometheus
+    cpus: 0.1
+    mem_limit: 100m
+    # volumes:
+    #   - ./prometheus:/etc/prometheus
+    ports:
+      - 9090:9090
+    restart: always
+    networks:
+      - llm-net
+
+  tempo:
+    container_name: tempo
+    build:
+      context: tempo
+    cpus: 0.1
+    mem_limit: 100m
+    ports:
+      - 3200:3200   #tempo api
+    restart: always
+    networks:
+      - llm-net
+  
+  grafana:
+    container_name: grafana
+    build:
+      context: grafana
+    cpus: 0.3
+    mem_limit: 500m
+    ports:
+      - 3000:3000
+    restart: always
+    networks:
+      - llm-net
+  
+  loki:
+    container_name: loki
+    build:
+      context: loki
+    cpus: 0.1
+    mem_limit: 100m
+    ports:
+      - 3100:3100   #otlp http
+      - 9095:9095   #otlp grpc
+    restart: always
+    networks:
+      - llm-net
+
+  otelcollector:
+    container_name: otelcollector
+    cpus: 0.1
+    mem_limit: 100m
+    build:
+      context: otelcollector
+    ports:
+      - 8888:8888   # Prometheus metrics exposed by the Collector
+      - 8889:8889   # Prometheus exporter metrics
+      - 13133:13133 # health_check extension (/health/status)
+    restart: always
+    networks:
+      - llm-net
+
+  ollama:
+    container_name: ollama
+    build:
+      context: ollama
+    ports:
+      - 11434:11434   # Ollama API
+    restart: always
+    networks:
+      - llm-net
+
+  qdrant:
+    container_name: qdrant
+    build:
+      context: qdrant
+    ports:
+      - 6333:6333 # Qdrant Web
+      - 6334:6334 # Qdrant GRPC
+    restart: always
+    networks:
+      - llm-net
+  
+networks:
+  llm-net:
+    external: true
