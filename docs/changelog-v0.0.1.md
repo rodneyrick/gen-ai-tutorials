@@ -1,0 +1,24 @@
+# Summary of Updates, Features, and Bug Fixes
+
+- Deployments and Dockerfiles were updated to address security issues pointed out by SonarQube.
+- The Union notation was changed to use grep instead.
+- The complexity of the span_decorator was reduced.
+- Telemetry support was added to coroutines.
+- An interface for asynchronous requests was added.
+- An interface for asynchronous shell commands was added.
+- Support for coroutines was added.
+- The langchain-tools dependency was removed.
+- A new BaseTool class was added.
+- The repository structure was updated to support a monorepo approach.
+- A new class was added for tracing provider control.
+- A new class was added for using a decorator and generating traces in functions.
+- A new tool was added for managing the chat.
+- Tasks and tools were updated to improve their functionality.
+- Support for Ngrok domain configuration and adjusting the external connection to Ollama was added.
+- A new tool was added for collecting metrics from GitHub repositories.
+- A new tool was added for collecting metrics from SonarQube repositories.
+- A new utility was added for generating insights on SonarQube and Git metrics using an LLM model.
+- SonarQube sonar-scanner executables were added.
+- A new utility was added for executing shell commands.
+- A new task was added for analyzing and extracting metrics from SonarQube.
+- A new structure for querying SonarQube metrics was added.
