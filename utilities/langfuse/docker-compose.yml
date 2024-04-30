@@ -6,11 +6,8 @@ services:
     container_name: langfuse
     ports:
       - "3000:3000"
-    environment:
-      - DATABASE_URL=postgresql://langfuse:langfuse@postgres:5432/langfuse
-      - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=mysecret
-      - SALT=mysalt
+    env_file:
+      - .env
     networks:
       - llm-net
     depends_on:
@@ -20,9 +17,8 @@ services:
   postgres:
     image: postgres
     container_name: postgres
-    environment:
-      - POSTGRES_USER=langfuse
-      - POSTGRES_PASSWORD=langfuse
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
