@@ -3,7 +3,6 @@ from typing import (
     Any,
     Dict,
     List,
-    Union,
 )
 from langchain_core.messages import BaseMessage
 from langchain_core.outputs import LLMResult
@@ -41,7 +40,7 @@ class ToollCallbackHanlder(BaseCallbackHandler):
         
 
     def on_llm_error(
-        self, error: Union[Exception, KeyboardInterrupt], **kwargs: Any
+        self, error: Exception | KeyboardInterrupt, **kwargs: Any
     ) -> Any:
         """Run when LLM errors."""
         logger.debug("LLM Error")
@@ -60,7 +59,7 @@ class ToollCallbackHanlder(BaseCallbackHandler):
         
 
     def on_chain_error(
-        self, error: Union[Exception, KeyboardInterrupt], **kwargs: Any
+        self, error: Exception | KeyboardInterrupt, **kwargs: Any
     ) -> Any:
         """Run when chain errors."""
         logger.debug("Chain error")
@@ -72,12 +71,6 @@ class ToollCallbackHanlder(BaseCallbackHandler):
         """Run when tool starts running."""
         logger.debug("Tool start")
         logger.debug(f'Tool Name: {serialized['name']}')
-        # logger.debug(f'Tool Description: {serialized['description']}')
-        # logger.debug(f'Tool Input: {input_str}')
-        # logger.debug(f'Run ID: {kwargs['run_id']}')
-        # logger.debug(f'Parent Run ID: {kwargs['parent_run_id']}')
-        
-        
 
     def on_tool_end(self, output: Any, **kwargs: Any) -> Any:
         """Run when tool ends running."""
@@ -85,7 +78,7 @@ class ToollCallbackHanlder(BaseCallbackHandler):
 
     
     def on_tool_error(
-        self, error: Union[Exception, KeyboardInterrupt], **kwargs: Any
+        self, error: Exception | KeyboardInterrupt, **kwargs: Any
     ) -> Any:
         """Run when tool errors."""
         logger.debug("Tool error")

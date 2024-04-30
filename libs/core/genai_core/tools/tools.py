@@ -1,4 +1,4 @@
-from typing import Any, Union, Dict, Optional, Type, List
+from typing import Any, Dict, Optional, Type, List
 from pydantic import BaseModel, ValidationError
 from abc import ABC, abstractmethod
 
@@ -16,7 +16,7 @@ class BaseTool(ABC):
     async def _run(self, **kwargs: Any) -> Any:
         pass
     
-    def _parse_input(self, tool_input: Union[str, Dict]) -> Union[str, Dict[str, Any]]:
+    def _parse_input(self, tool_input: str | Dict) -> str | Dict[str, Any]:
         """Convert tool input to pydantic model."""
         
         input_args = self.args_schema
@@ -35,7 +35,7 @@ class BaseTool(ABC):
                 }
         return tool_input
     
-    async def run(self, tool_input: Union[str, Dict[str, Any]], 
+    async def run(self, tool_input: str | Dict[str, Any], 
             tags: Optional[List[str]] = None) -> Any:
         try:
             tool_kwargs = self._parse_input(tool_input)
