@@ -13,7 +13,7 @@ logger = logging.getLogger()
 
 async def tool_sonar_scanner():
     tool_output = await ToolSonarScanner().run(tool_input={
-        "project_name": "rdpy-observability",
+        "project_name": "gen-ai-tutorials",
         "token": os.environ['SONAR_TOKEN'],
         "url": os.environ['SONAR_HOST'],
     })
@@ -42,8 +42,8 @@ async def tool_git_range_commit():
 
 async def tool_git_clone():
     tool_output = await ToolGit().run(tool_input={
-        "project_name": "rdpy-observability",
-        "url": "https://github.com/lucasBritoo/rdpy-observability",
+        "project_name": "gen-ai-tutorials",
+        "url": "https://github.com/rodneyrick/gen-ai-tutorials",
         "function": GitFunctionalities.GIT_CLONE
     })
     
@@ -68,4 +68,4 @@ async def tool_llm_chat():
         
     logger.debug(tool_output)
     
-asyncio.run(tool_git_clone())
+asyncio.run(tool_sonar_scanner())

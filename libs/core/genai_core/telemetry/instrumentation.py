@@ -56,7 +56,7 @@ class Instrumentation():
 
 class TracingOptions:
     
-    class Attributes:
+    class TracingAttributes:
         @staticmethod
         def function_qualified_name(func: Callable):
             return func.__qualname__.split('.')[0] if '.' in func.__qualname__ else "span.no_name"
@@ -85,9 +85,37 @@ class TracingOptions:
         default_scheme = function_qualified_name
         attributes = function_attributes
   
-    naming_scheme: Callable[[Callable], str] = Attributes.default_scheme
-    attributes: Callable[[Callable], str] = Attributes.attributes
+    naming_scheme: Callable[[Callable], str] = TracingAttributes.default_scheme
+    attributes: Callable[[Callable], str] = TracingAttributes.attributes
 
+def _set_attributes(span, attributes_dict):
+    if attributes_dict:
+        for att in attributes_dict:
+            span.set_attribute(att, attributes_dict[att])
+
+def span_event(func, name, span_attributes, *args, **kwargs):
+    current_span = get_current_span()
+    if current_span is not None:
+        current_span.add_event(name ,attributes=span_attributes)
+    
+    return func(*args, **kwargs)
+
+def span(func, tracer, name, span_attributes,  kind, record_exception, *args, **kwargs):
+    with tracer.start_as_current_span(name, record_exception=record_exception, kind=kind) as span:
+        _set_attributes(span, span_attributes)
+        return func(*args, **kwargs)
+            
+async def async_span_event(func, name, span_attributes, *args, **kwargs):
+    current_span = get_current_span()
+    if current_span is not None:
+        current_span.add_event(name ,attributes=span_attributes)
+    
+    return await func(*args, **kwargs)
+
+async def async_span(func, tracer, record_exception, name, span_attributes,  kind, *args, **kwargs):
+    with tracer.start_as_current_span(name, record_exception=record_exception, kind=kind) as span:
+        _set_attributes(span, span_attributes)
+        return await func(*args, **kwargs)
 
 def instrumented_trace(_func=None, *,  span_name: str = "", record_exception: bool = True,
                attributes: Dict[str, str] = None, type: TraceInstruments = TraceInstruments.INSTRUMENTS_TRACE,
@@ -96,55 +124,27 @@ def instrumented_trace(_func=None, *,  span_name: str = "", record_exception: bo
 
     def span_decorator(func):
         tracer = trace.get_tracer(func.__module__)
-
-        def _set_attributes(span, attributes_dict):
-            if attributes_dict:
-                for att in attributes_dict:
-                    span.set_attribute(att, attributes_dict[att])
-                    
+     
         @wraps(func)
         def wrap_with_span_sync(*args, **kwargs):
             name = span_name or TracingOptions.naming_scheme(func)
             span_attributes = TracingOptions.attributes(func, attributes, span_parameters, **kwargs)
             
-            def span_event(name, span_attributes, *args, **kwargs):
-                current_span = get_current_span()
-                if current_span is not None:
-                    current_span.add_event(name ,attributes=span_attributes)
-                
-                return func(*args, **kwargs)
-            
-            def span(name, span_attributes,  kind, *args, **kwargs):
-                with tracer.start_as_current_span(name, record_exception=record_exception, kind=kind) as span:
-                    _set_attributes(span, span_attributes)
-                    return func(*args, **kwargs)
-            
             if type == TraceInstruments.INSTRUMENTS_EVENT:
-                return span_event(name, span_attributes, *args, **kwargs)
+                return span_event(func, name, span_attributes, *args, **kwargs)
             
-            return span(name, span_attributes, kind, *args, **kwargs)
+            return span(func, tracer, name, span_attributes, kind, record_exception, *args, **kwargs)
     
         @wraps(func)
         async def wrap_with_span_async(*args, **kwargs):
             name = span_name or TracingOptions.naming_scheme(func)
             span_attributes = TracingOptions.attributes(func, attributes, span_parameters, **kwargs)
-            
-            async def span_event(name, span_attributes, *args, **kwargs):
-                current_span = get_current_span()
-                if current_span is not None:
-                    current_span.add_event(name ,attributes=span_attributes)
-                
-                return await func(*args, **kwargs)
-            
-            async def span(name, span_attributes,  kind, *args, **kwargs):
-                with tracer.start_as_current_span(name, record_exception=record_exception, kind=kind) as span:
-                    _set_attributes(span, span_attributes)
-                    return await func(*args, **kwargs)
-            
+                       
             if type == TraceInstruments.INSTRUMENTS_EVENT:
-                return await span_event(name, span_attributes, *args, **kwargs)
+                return await async_span_event(func, name, span_attributes, *args, **kwargs)
             
-            return await span(name, span_attributes, kind, *args, **kwargs)
+            return await async_span(func, tracer, record_exception, name, span_attributes, kind,
+                                    *args, **kwargs)
         
         wrapper = wrap_with_span_async if asyncio.iscoroutinefunction(func) else wrap_with_span_sync
         wrapper.__signature__ = inspect.signature(func)
